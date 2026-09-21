@@ -5,7 +5,7 @@ import { GoalPriority, GoalStatus } from '../../types';
 import { formatUZS } from '../../utils/formatters';
 
 export const AddGoalModal: React.FC = () => {
-  const { activeModal, closeModal, addGoal, currentMonth } = useFinance();
+  const { activeModal, closeModal, addGoal, currentMonth, activeFamilyMembers } = useFinance();
 
   const [name, setName] = useState('');
   const [targetAmountStr, setTargetAmountStr] = useState('');
@@ -13,6 +13,7 @@ export const AddGoalModal: React.FC = () => {
   const [deadline, setDeadline] = useState(() => `${currentMonth}-30`);
   const [priority, setPriority] = useState<GoalPriority>('high');
   const [status, setStatus] = useState<GoalStatus>('on_track');
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [category, setCategory] = useState('Texnika va buyumlar');
   const [notes, setNotes] = useState('');
 
@@ -37,6 +38,7 @@ export const AddGoalModal: React.FC = () => {
       status: rawCurrentSaved >= rawTargetAmount ? 'completed' : status,
       category,
       notes: notes.trim() || undefined,
+      memberId: selectedMemberId || null,
     });
 
     closeModal();
@@ -147,6 +149,24 @@ export const AddGoalModal: React.FC = () => {
                 <option value="low">Past</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Maqsad egasi / Kim uchun?
+            </label>
+            <select
+              value={selectedMemberId}
+              onChange={(e) => setSelectedMemberId(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+            >
+              <option value="">Umumiy oilaviy maqsad</option>
+              {activeFamilyMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.role === 'Owner' ? 'Boshliq' : member.role === 'Adult' ? 'Katta' : 'Farzand'}) - Shaxsiy maqsad
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

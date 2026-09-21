@@ -1,7 +1,51 @@
-import { Income, Expense, UtilityBill, MandatoryPayment, FinancialGoal, TaxProfile } from '../types';
+import {
+  Income,
+  Expense,
+  UtilityBill,
+  MandatoryPayment,
+  FinancialGoal,
+  TaxProfile,
+  Family,
+  FamilyMember,
+} from '../types';
 
 export const INITIAL_MONTH = '2026-09';
 export const PREVIOUS_MONTH = '2026-08';
+
+export const INITIAL_FAMILY: Family = {
+  id: 'fam-default',
+  name: 'Bizning oila',
+  currency: 'UZS',
+  createdAt: '2026-09-01T00:00:00.000Z',
+  updatedAt: '2026-09-01T00:00:00.000Z',
+};
+
+export const INITIAL_FAMILY_MEMBERS: FamilyMember[] = [
+  {
+    id: 'mem-1',
+    familyId: 'fam-default',
+    name: 'Anvar (Ota)',
+    role: 'Owner',
+    active: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+  {
+    id: 'mem-2',
+    familyId: 'fam-default',
+    name: 'Dilnoza (Ona)',
+    role: 'Adult',
+    active: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+  {
+    id: 'mem-3',
+    familyId: 'fam-default',
+    name: 'Jasur (Farzand)',
+    role: 'Child',
+    active: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+];
 
 export const INITIAL_INCOMES: Income[] = [
   {
@@ -12,6 +56,7 @@ export const INITIAL_INCOMES: Income[] = [
     isRecurring: true,
     category: 'salary',
     notes: 'Kompaniya tomonidan plastik kartaga oʻtkazilgan',
+    memberId: 'mem-1',
   },
   {
     id: 'inc-2',
@@ -21,6 +66,7 @@ export const INITIAL_INCOMES: Income[] = [
     isRecurring: false,
     category: 'freelance',
     notes: 'Mijoz uchun sayt dizayni va sozlash',
+    memberId: 'mem-1',
   },
 ];
 
@@ -33,6 +79,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Bozorlik va oziq-ovqat mahsulotlari (Korzinka & Bozor)',
     isRecurring: true,
     isEssential: true,
+    memberId: 'mem-2',
   },
   {
     id: 'exp-2',
@@ -42,6 +89,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Metropoliten kartasi va avtomobil yoqilgʻisi',
     isRecurring: true,
     isEssential: true,
+    memberId: 'mem-1',
   },
   {
     id: 'exp-3',
@@ -51,6 +99,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Uy-roʻzgʻor gigiyena va tozalash vositalari',
     isRecurring: true,
     isEssential: true,
+    memberId: null,
   },
   {
     id: 'exp-4',
@@ -60,6 +109,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Dorixona va mavsumiy vitaminlar',
     isRecurring: false,
     isEssential: true,
+    memberId: 'mem-2',
   },
   {
     id: 'exp-5',
@@ -69,6 +119,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Mobil aloqa oylik tarifi (Beeline/Ucell)',
     isRecurring: true,
     isEssential: true,
+    memberId: 'mem-1',
   },
   {
     id: 'exp-6',
@@ -78,6 +129,7 @@ export const INITIAL_EXPENSES: Expense[] = [
     description: 'Oilaviy kinoteatr va dam olish kuni kafesi',
     isRecurring: false,
     isEssential: false,
+    memberId: null,
   },
 ];
 
@@ -241,6 +293,7 @@ export const INITIAL_GOALS: FinancialGoal[] = [
     status: 'on_track',
     category: 'Texnika va aloqa',
     notes: 'Bu oy 1 000 000 soʻmga telefon xarid qilish rejalashtirilgan',
+    memberId: 'mem-3',
   },
   {
     id: 'goal-2',
@@ -253,5 +306,6 @@ export const INITIAL_GOALS: FinancialGoal[] = [
     status: 'on_track',
     category: 'Sayohat va dam olish',
     notes: 'Zomin yoki Amirsoy togʻ kurortiga qishki sayohat',
+    memberId: null,
   },
 ];

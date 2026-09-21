@@ -39,6 +39,61 @@ export type MandatoryCategory =
 export type GoalPriority = 'low' | 'medium' | 'high';
 export type GoalStatus = 'on_track' | 'at_risk' | 'completed';
 
+export interface Family {
+  id: string;
+  name: string;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type FamilyRole = 'Owner' | 'Adult' | 'Child';
+
+export interface FamilyMember {
+  id: string;
+  familyId: string;
+  name: string;
+  role: FamilyRole;
+  avatar?: string;
+  avatarEmoji?: string;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface MemberFinanceSummary {
+  memberId: string | null; // null for "Oila" (family-level)
+  memberName: string;
+  memberRole?: FamilyRole | 'Family';
+  isActive?: boolean;
+  income: number;
+  expenses: number;
+  totalExpenses: number;
+  everydayExpenses: number;
+  utilities: number;
+  mandatory: number;
+  balance: number;
+  netBalance: number;
+  percentOfTotalIncome: number;
+  percentOfTotalExpenses: number;
+  safeToSpendShare?: {
+    daily: number;
+    weekly: number;
+    monthly: number;
+  };
+}
+
+export interface FamilyFinanceSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  totalMandatory: number;
+  familyBalance: number; // totalIncome - totalExpenses - totalMandatory
+  safeToSpendMonth: number;
+  goalReserve: number;
+  unassignedIncome: number;
+  unassignedExpenses: number;
+  memberBreakdown: MemberFinanceSummary[];
+}
+
 export interface Income {
   id: string;
   name: string;
@@ -47,6 +102,7 @@ export interface Income {
   isRecurring: boolean;
   category: IncomeCategory;
   notes?: string;
+  memberId?: string | null;
 }
 
 export interface Expense {
@@ -57,6 +113,7 @@ export interface Expense {
   description: string;
   isRecurring: boolean;
   isEssential?: boolean; // essential vs flexible/discretionary
+  memberId?: string | null;
 }
 
 export interface UtilityBill {
@@ -71,6 +128,7 @@ export interface UtilityBill {
   meterReading?: number;
   accountNumber?: string; // Subscriber/personal account number for payment providers
   paymentTransactionId?: string; // Reference to PaymentTransaction once processed
+  memberId?: string | null;
 }
 
 export interface MandatoryPayment {
@@ -87,6 +145,7 @@ export interface MandatoryPayment {
   taxType?: TaxType;
   isOfficial?: boolean; // false if user-entered / estimated
   isEstimated?: boolean; // true if auto-calculated based on income
+  memberId?: string | null;
 }
 
 export type TaxType =
@@ -191,6 +250,7 @@ export interface UpcomingPaymentItem {
   iconType: 'tax' | 'utility' | 'goal' | 'mandatory';
   targetTab: 'expenses' | 'goals';
   targetSubTab?: 'mandatory' | 'utilities' | 'planner';
+  memberId?: string | null;
 }
 
 export interface FinancialGoal {
@@ -204,6 +264,8 @@ export interface FinancialGoal {
   status: GoalStatus;
   category?: string;
   notes?: string;
+  memberId?: string | null;
+  monthlyTargetSavings?: number;
 }
 
 export interface MonthlyFinancialSummary {

@@ -6,6 +6,9 @@ import {
   FinancialGoal,
   MonthlyFinancialSummary,
   GoalPlanAnalysis,
+  FamilyMember,
+  MemberFinanceSummary,
+  FamilyFinanceSummary,
 } from '../types';
 
 /**
@@ -244,3 +247,226 @@ export function analyzeGoalPlan(
     suggestedIncomeIncrease,
   };
 }
+
+/**
+ * Family Balance calculation
+ * Formula: Total Income - Total Expenses - Mandatory Payments = Available Family Balance
+ */
+export function calculateFamilyBalance(
+  totalIncome: number,
+  totalExpenses: number,
+  mandatoryPayments: number
+): number {
+  return totalIncome - totalExpenses - mandatoryPayments;
+}
+
+/**
+ * Filtered family income calculation.
+ * If memberId is undefined: returns sum of all incomes.
+ * If memberId is null or 'family': returns sum of incomes with no member assigned.
+ * If memberId is a string: returns sum of incomes assigned to that member.
+ */
+export function calculateFamilyIncome(
+  incomes: Income[],
+  memberId?: string | null
+): number {
+  if (memberId === undefined) {
+    return incomes.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  }
+  if (memberId === null || memberId === 'family') {
+    return incomes
+      .filter((i) => !i.memberId || i.memberId === 'family')
+      .reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  }
+  return incomes
+    .filter((i) => i.memberId === memberId)
+    .reduce((acc, cur) => acc + (cur.amount || 0), 0);
+}
+
+/**
+ * Filtered family expenses calculation.
+ * If memberId is undefined: returns sum of all everyday expenses.
+ * If memberId is null or 'family': returns sum of expenses with no member assigned.
+ * If memberId is a string: returns sum of expenses assigned to that member.
+ */
+export function calculateFamilyExpenses(
+  expenses: Expense[],
+  memberId?: string | null
+): number {
+  if (memberId === undefined) {
+    return expenses.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  }
+  if (memberId === null || memberId === 'family') {
+    return expenses
+      .filter((e) => !e.memberId || e.memberId === 'family')
+      .reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  }
+  return expenses
+    .filter((e) => e.memberId === memberId)
+    .reduce((acc, cur) => acc + (cur.amount || 0), 0);
+}
+
+/**
+ * Calculate financial summary for each family member, plus the collective 'Oila' (family-level) bucket.
+ * Pure deterministic calculation.
+ */
+export function calculateMemberSummary(
+  members: FamilyMember[],
+  incomes: Income[],
+  expenses: Expense[],
+  utilities: UtilityBill[] = [],
+  mandatory: MandatoryPayment[] = [],
+  totalFamilyIncome: number = 0,
+  totalFamilyExpenses: number = 0
+): MemberFinanceSummary[] {
+  const result: MemberFinanceSummary[] = [];
+
+  const safeTotalIncome = Math.max(1, totalFamilyIncome);
+  const safeTotalExpenses = Math.max(1, totalFamilyExpenses);
+
+  // Individual members
+  members.forEach((member) => {
+    const memberIncomes = incomes.filter((i) => i.memberId === member.id);
+    const memberEveryday = expenses.filter((e) => e.memberId === member.id);
+    const memberUtils = utilities.filter((u) => u.memberId === member.id);
+    const memberMandat = mandatory.filter((m) => m.memberId === member.id);
+
+    const income = memberIncomes.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+    const everydayExpenses = memberEveryday.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+    const utilsSum = memberUtils.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+    const mandatSum = memberMandat.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+    const totalExp = everydayExpenses + utilsSum + mandatSum;
+    const balance = income - totalExp;
+
+    const percentOfTotalIncome = Math.min(100, Math.round((income / safeTotalIncome) * 100));
+    const percentOfTotalExpenses = Math.min(100, Math.round((totalExp / safeTotalExpenses) * 100));
+
+    result.push({
+      memberId: member.id,
+      memberName: member.name,
+      memberRole: member.role,
+      isActive: member.active,
+      income,
+      expenses: everydayExpenses,
+      totalExpenses: totalExp,
+      everydayExpenses,
+      utilities: utilsSum,
+      mandatory: mandatSum,
+      balance,
+      netBalance: balance,
+      percentOfTotalIncome,
+      percentOfTotalExpenses,
+      safeToSpendShare: {
+        daily: Math.round(Math.max(0, balance) / 30),
+        weekly: Math.round(Math.max(0, balance) / 4),
+        monthly: Math.max(0, balance),
+      },
+    });
+  });
+
+  // Collective Family-level (unassigned or explicitly 'family')
+  const familyIncomes = incomes.filter((i) => !i.memberId || i.memberId === 'family');
+  const familyEveryday = expenses.filter((e) => !e.memberId || e.memberId === 'family');
+  const familyUtils = utilities.filter((u) => !u.memberId || u.memberId === 'family');
+  const familyMandat = mandatory.filter((m) => !m.memberId || m.memberId === 'family');
+
+  const famIncome = familyIncomes.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const famEveryday = familyEveryday.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const famUtils = familyUtils.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const famMandat = familyMandat.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const famTotalExp = famEveryday + famUtils + famMandat;
+  const famBalance = famIncome - famTotalExp;
+
+  result.push({
+    memberId: null,
+    memberName: 'Oilaviy umumiy',
+    memberRole: 'Family',
+    isActive: true,
+    income: famIncome,
+    expenses: famEveryday,
+    totalExpenses: famTotalExp,
+    everydayExpenses: famEveryday,
+    utilities: famUtils,
+    mandatory: famMandat,
+    balance: famBalance,
+    netBalance: famBalance,
+    percentOfTotalIncome: Math.min(100, Math.round((famIncome / safeTotalIncome) * 100)),
+    percentOfTotalExpenses: Math.min(100, Math.round((famTotalExp / safeTotalExpenses) * 100)),
+    safeToSpendShare: {
+      daily: Math.round(Math.max(0, famBalance) / 30),
+      weekly: Math.round(Math.max(0, famBalance) / 4),
+      monthly: Math.max(0, famBalance),
+    },
+  });
+
+  return result;
+}
+
+/**
+ * Calculate comprehensive Family Financial Summary
+ */
+export function calculateFamilySummary(
+  monthStr: string,
+  familyMembers: FamilyMember[],
+  incomes: Income[],
+  expenses: Expense[],
+  utilities: UtilityBill[],
+  mandatory: MandatoryPayment[],
+  goals: FinancialGoal[]
+): FamilyFinanceSummary {
+  const monthIncomes = incomes.filter((item) => item.date.startsWith(monthStr));
+  const monthExpenses = expenses.filter((item) => item.date.startsWith(monthStr));
+  const monthUtilities = utilities.filter((item) => item.month === monthStr);
+  const monthMandatory = mandatory.filter((item) => item.month === monthStr);
+
+  const totalIncome = monthIncomes.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const totalExpenses = monthExpenses.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const totalUtilities = monthUtilities.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const totalMandatory = monthMandatory.reduce((acc, cur) => acc + (cur.amount || 0), 0);
+
+  const totalMandatoryCombined = totalUtilities + totalMandatory;
+  const allOutflows = totalExpenses + totalMandatoryCombined;
+  const familyBalance = calculateFamilyBalance(totalIncome, totalExpenses, totalMandatoryCombined);
+
+  const activeGoalsThisMonth = goals.filter(
+    (g) => g.status !== 'completed' && (g.targetMonth === monthStr || g.deadline.startsWith(monthStr))
+  );
+
+  const goalReserve = activeGoalsThisMonth.reduce((acc, g) => {
+    const needed = Math.max(0, g.targetAmount - (g.currentSavedAmount || 0));
+    return acc + needed;
+  }, 0);
+
+  const safeToSpendMonth = familyBalance - goalReserve;
+
+  // Unassigned
+  const unassignedIncome = monthIncomes
+    .filter((i) => !i.memberId || i.memberId === 'family')
+    .reduce((acc, cur) => acc + (cur.amount || 0), 0);
+  const unassignedExpenses = monthExpenses
+    .filter((e) => !e.memberId || e.memberId === 'family')
+    .reduce((acc, cur) => acc + (cur.amount || 0), 0);
+
+  const memberBreakdown = calculateMemberSummary(
+    familyMembers,
+    monthIncomes,
+    monthExpenses,
+    monthUtilities,
+    monthMandatory,
+    totalIncome,
+    allOutflows
+  );
+
+  return {
+    totalIncome,
+    totalExpenses,
+    totalMandatory: totalMandatoryCombined,
+    familyBalance,
+    safeToSpendMonth,
+    goalReserve,
+    unassignedIncome,
+    unassignedExpenses,
+    memberBreakdown,
+  };
+}
+

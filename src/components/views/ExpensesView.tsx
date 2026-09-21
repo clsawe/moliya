@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   PieChart,
   Filter,
+  Users,
+  User,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import { ExpenseCategory, Expense } from '../../types';
@@ -42,6 +44,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
     mandatoryPayments,
     expensesSubTab,
     setExpensesSubTab,
+    activeFamilyMembers,
+    familyMembers,
   } = useFinance();
   const [activeSubTab, setActiveSubTab] = useState<'everyday' | 'utilities' | 'mandatory' | 'analytics'>(
     expensesSubTab || initialTab
@@ -59,6 +63,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
   };
 
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Edit form state
@@ -68,19 +73,28 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
   const [editDate, setEditDate] = useState('');
   const [editRecurring, setEditRecurring] = useState(false);
   const [editEssential, setEditEssential] = useState(true);
+  const [editMemberId, setEditMemberId] = useState<string>('family');
 
   // Month expenses
   const monthExpenses = expenses.filter((exp) => exp.date.startsWith(currentMonth));
-  const filteredExpenses = monthExpenses.filter(
+  
+  // Member filtered expenses
+  const memberFilteredExpenses = monthExpenses.filter((exp) => {
+    if (selectedMemberFilter === 'all') return true;
+    if (selectedMemberFilter === 'family') return !exp.memberId;
+    return exp.memberId === selectedMemberFilter;
+  });
+
+  const filteredExpenses = memberFilteredExpenses.filter(
     (exp) => filterCategory === 'all' || exp.category === filterCategory
   );
 
-  const totalMonthlyEveryday = monthExpenses.reduce((acc, cur) => acc + cur.amount, 0);
+  const totalMonthlyEveryday = memberFilteredExpenses.reduce((acc, cur) => acc + cur.amount, 0);
   const totalAllOutflows = totalMonthlyEveryday + summary.totalUtilities + summary.totalMandatory;
 
   // Category totals for everyday
   const categoryTotals: Record<string, number> = {};
-  monthExpenses.forEach((exp) => {
+  memberFilteredExpenses.forEach((exp) => {
     categoryTotals[exp.category] = (categoryTotals[exp.category] || 0) + exp.amount;
   });
 
@@ -94,6 +108,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
     setEditDate(exp.date);
     setEditRecurring(exp.isRecurring);
     setEditEssential(exp.isEssential ?? true);
+    setEditMemberId(exp.memberId || 'family');
   };
 
   const cancelEdit = () => {
@@ -111,6 +126,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
       date: editDate,
       isRecurring: editRecurring,
       isEssential: editEssential,
+      memberId: editMemberId === 'family' ? null : editMemberId,
     });
     setEditingId(null);
   };
@@ -295,6 +311,59 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
       {/* TAB CONTENT */}
       {activeSubTab === 'everyday' && (
         <div className="space-y-6">
+          {/* Family Member Filter Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0 mr-1">
+              <Users className="w-3.5 h-3.5" />
+              <span>A'zo bo'yicha:</span>
+            </span>
+            <button
+              onClick={() => setSelectedMemberFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                selectedMemberFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              Barchasi ({monthExpenses.length})
+            </button>
+            {activeFamilyMembers.map((member) => {
+              const memberCount = monthExpenses.filter((e) => e.memberId === member.id).length;
+              const isSelected = selectedMemberFilter === member.id;
+              return (
+                <button
+                  key={member.id}
+                  onClick={() => setSelectedMemberFilter(member.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-rose-600 text-white shadow-2xs'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{member.avatarEmoji || '👤'}</span>
+                  <span>{member.name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-rose-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    {memberCount}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setSelectedMemberFilter('family')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                selectedMemberFilter === 'family'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>👥</span>
+              <span>Umumiy oila</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedMemberFilter === 'family' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {monthExpenses.filter((e) => !e.memberId).length}
+              </span>
+            </button>
+          </div>
+
           {/* Category Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5">
             <button
@@ -305,10 +374,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              Barchasi ({monthExpenses.length})
+              Barchasi ({memberFilteredExpenses.length})
             </button>
             {Object.entries(EXPENSE_CATEGORY_LABELS).map(([catKey, { label }]) => {
-              const count = monthExpenses.filter((e) => e.category === catKey).length;
+              const count = memberFilteredExpenses.filter((e) => e.category === catKey).length;
               if (count === 0 && filterCategory !== catKey) return null;
               return (
                 <button
@@ -333,12 +402,15 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
               <h3 className="text-base font-bold text-slate-900">
                 Xarajatlar roʻyxati ({filteredExpenses.length} ta)
               </h3>
-              {filterCategory !== 'all' && (
+              {(filterCategory !== 'all' || selectedMemberFilter !== 'all') && (
                 <button
-                  onClick={() => setFilterCategory('all')}
+                  onClick={() => {
+                    setFilterCategory('all');
+                    setSelectedMemberFilter('all');
+                  }}
                   className="text-xs font-semibold text-rose-600 hover:underline"
                 >
-                  Filtrni tozalash
+                  Filtrlarni tozalash
                 </button>
               )}
             </div>
@@ -354,6 +426,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                 {filteredExpenses.map((exp) => {
                   const catMeta = EXPENSE_CATEGORY_LABELS[exp.category] || { label: exp.category };
                   const isEditing = editingId === exp.id;
+                  const assignedMember = exp.memberId
+                    ? familyMembers.find((m) => m.id === exp.memberId)
+                    : null;
 
                   if (isEditing) {
                     return (
@@ -384,39 +459,54 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                               </option>
                             ))}
                           </select>
+                          <select
+                            value={editMemberId}
+                            onChange={(e) => setEditMemberId(e.target.value)}
+                            className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none font-medium"
+                          >
+                            <option value="family">👥 Umumiy oilaviy xarajat</option>
+                            {activeFamilyMembers.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.avatarEmoji || '👤'} {m.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
                           <input
                             type="date"
                             value={editDate}
                             onChange={(e) => setEditDate(e.target.value)}
                             className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
                           />
-                        </div>
 
-                        <div className="flex items-center justify-between pt-1">
-                          <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editEssential}
-                              onChange={(e) => setEditEssential(e.target.checked)}
-                              className="rounded text-rose-600 focus:ring-rose-500"
-                            />
-                            <span>Zaruriy xarajat (oziq-ovqat, dori-darmon)</span>
-                          </label>
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editEssential}
+                                onChange={(e) => setEditEssential(e.target.checked)}
+                                className="rounded text-rose-600 focus:ring-rose-500"
+                              />
+                              <span>Zaruriy xarajat</span>
+                            </label>
 
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={cancelEdit}
-                              className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
-                            >
-                              Bekor qilish
-                            </button>
-                            <button
-                              onClick={() => saveEdit(exp.id)}
-                              className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 rounded-lg hover:bg-rose-700 flex items-center gap-1"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Saqlash</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={cancelEdit}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+                              >
+                                Bekor qilish
+                              </button>
+                              <button
+                                onClick={() => saveEdit(exp.id)}
+                                className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 rounded-lg hover:bg-rose-700 flex items-center gap-1"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Saqlash</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -433,8 +523,20 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                           <Receipt className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <h4 className="font-bold text-sm text-slate-900">{exp.description}</h4>
+                            {/* Member badge */}
+                            {assignedMember ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200">
+                                <span>{assignedMember.avatarEmoji || '👤'}</span>
+                                <span>{assignedMember.name}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                <Users className="w-2.5 h-2.5" />
+                                <span>Umumiy oila</span>
+                              </span>
+                            )}
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
                               {catMeta.label}
                             </span>

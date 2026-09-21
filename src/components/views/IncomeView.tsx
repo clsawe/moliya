@@ -9,6 +9,8 @@ import {
   Repeat,
   Check,
   X,
+  Users,
+  User,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import { IncomeCategory, Income } from '../../types';
@@ -20,8 +22,18 @@ import {
 } from '../../utils/formatters';
 
 export const IncomeView: React.FC = () => {
-  const { incomes, addIncome, updateIncome, deleteIncome, currentMonth, openModal } = useFinance();
+  const {
+    incomes,
+    addIncome,
+    updateIncome,
+    deleteIncome,
+    currentMonth,
+    openModal,
+    activeFamilyMembers,
+    familyMembers,
+  } = useFinance();
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Edit form state
@@ -31,18 +43,27 @@ export const IncomeView: React.FC = () => {
   const [editDate, setEditDate] = useState('');
   const [editRecurring, setEditRecurring] = useState(false);
   const [editNotes, setEditNotes] = useState('');
+  const [editMemberId, setEditMemberId] = useState<string>('family');
 
   // Current month incomes
   const monthIncomes = incomes.filter((inc) => inc.date.startsWith(currentMonth));
-  const filteredIncomes = monthIncomes.filter(
+  
+  // Apply both member filter and category filter
+  const memberFilteredIncomes = monthIncomes.filter((inc) => {
+    if (selectedMemberFilter === 'all') return true;
+    if (selectedMemberFilter === 'family') return !inc.memberId;
+    return inc.memberId === selectedMemberFilter;
+  });
+
+  const filteredIncomes = memberFilteredIncomes.filter(
     (inc) => filterCategory === 'all' || inc.category === filterCategory
   );
 
-  const totalMonthlyIncome = monthIncomes.reduce((acc, cur) => acc + cur.amount, 0);
+  const totalMonthlyIncome = memberFilteredIncomes.reduce((acc, cur) => acc + cur.amount, 0);
 
-  // Category totals
+  // Category totals for current member selection
   const categoryTotals: Record<string, number> = {};
-  monthIncomes.forEach((inc) => {
+  memberFilteredIncomes.forEach((inc) => {
     categoryTotals[inc.category] = (categoryTotals[inc.category] || 0) + inc.amount;
   });
 
@@ -54,6 +75,7 @@ export const IncomeView: React.FC = () => {
     setEditDate(inc.date);
     setEditRecurring(inc.isRecurring);
     setEditNotes(inc.notes || '');
+    setEditMemberId(inc.memberId || 'family');
   };
 
   const cancelEdit = () => {
@@ -71,6 +93,7 @@ export const IncomeView: React.FC = () => {
       date: editDate,
       isRecurring: editRecurring,
       notes: editNotes.trim() || undefined,
+      memberId: editMemberId === 'family' ? null : editMemberId,
     });
     setEditingId(null);
   };
@@ -109,6 +132,59 @@ export const IncomeView: React.FC = () => {
         </div>
       </div>
 
+      {/* Family Member Filter Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0 mr-1">
+          <Users className="w-3.5 h-3.5" />
+          <span>A'zo bo'yicha:</span>
+        </span>
+        <button
+          onClick={() => setSelectedMemberFilter('all')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            selectedMemberFilter === 'all'
+              ? 'bg-slate-900 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          Barchasi ({monthIncomes.length})
+        </button>
+        {activeFamilyMembers.map((member) => {
+          const memberCount = monthIncomes.filter((i) => i.memberId === member.id).length;
+          const isSelected = selectedMemberFilter === member.id;
+          return (
+            <button
+              key={member.id}
+              onClick={() => setSelectedMemberFilter(member.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                isSelected
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>{member.avatarEmoji || '👤'}</span>
+              <span>{member.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {memberCount}
+              </span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setSelectedMemberFilter('family')}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+            selectedMemberFilter === 'family'
+              ? 'bg-indigo-600 text-white shadow-2xs'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <span>👥</span>
+          <span>Umumiy oila</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedMemberFilter === 'family' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+            {monthIncomes.filter((i) => !i.memberId).length}
+          </span>
+        </button>
+      </div>
+
       {/* Category Breakdown Chips */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {Object.entries(INCOME_CATEGORY_LABELS).map(([catKey, meta]) => {
@@ -137,12 +213,15 @@ export const IncomeView: React.FC = () => {
           <h3 className="text-base font-bold text-slate-900">
             Barcha daromadlar ({filteredIncomes.length} ta yozuv)
           </h3>
-          {filterCategory !== 'all' && (
+          {(filterCategory !== 'all' || selectedMemberFilter !== 'all') && (
             <button
-              onClick={() => setFilterCategory('all')}
+              onClick={() => {
+                setFilterCategory('all');
+                setSelectedMemberFilter('all');
+              }}
               className="text-xs font-semibold text-emerald-700 hover:underline"
             >
-              Filtrni tozalash
+              Filtrlarni tozalash
             </button>
           )}
         </div>
@@ -158,6 +237,9 @@ export const IncomeView: React.FC = () => {
             {filteredIncomes.map((inc) => {
               const catMeta = INCOME_CATEGORY_LABELS[inc.category] || { label: inc.category };
               const isEditing = editingId === inc.id;
+              const assignedMember = inc.memberId
+                ? familyMembers.find((m) => m.id === inc.memberId)
+                : null;
 
               if (isEditing) {
                 return (
@@ -194,6 +276,18 @@ export const IncomeView: React.FC = () => {
                           <option key={k} value={k}>{v.label}</option>
                         ))}
                       </select>
+                      <select
+                        value={editMemberId}
+                        onChange={(e) => setEditMemberId(e.target.value)}
+                        className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none font-medium"
+                      >
+                        <option value="family">👥 Umumiy oilaviy daromad</option>
+                        {activeFamilyMembers.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.avatarEmoji || '👤'} {m.name}
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="text"
                         value={editNotes}
@@ -201,21 +295,21 @@ export const IncomeView: React.FC = () => {
                         placeholder="Qoʻshimcha izoh"
                         className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
                       />
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={cancelEdit}
-                          className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
-                        >
-                          Bekor qilish
-                        </button>
-                        <button
-                          onClick={() => saveEdit(inc.id)}
-                          className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex items-center gap-1"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Saqlash</span>
-                        </button>
-                      </div>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        onClick={cancelEdit}
+                        className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+                      >
+                        Bekor qilish
+                      </button>
+                      <button
+                        onClick={() => saveEdit(inc.id)}
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 flex items-center gap-1"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Saqlash</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -231,8 +325,20 @@ export const IncomeView: React.FC = () => {
                       <TrendingUp className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h4 className="font-bold text-sm text-slate-900">{inc.name}</h4>
+                        {/* Member badge */}
+                        {assignedMember ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <span>{assignedMember.avatarEmoji || '👤'}</span>
+                            <span>{assignedMember.name}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200">
+                            <Users className="w-2.5 h-2.5" />
+                            <span>Umumiy oila</span>
+                          </span>
+                        )}
                         {inc.isRecurring && (
                           <span
                             className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"

@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Clock,
   Coins,
+  Users,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
 import { FinancialGoal, GoalStatus, GoalPriority } from '../../types';
@@ -43,20 +44,30 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ initialTab = 'list' }) => 
     selectedPlannerGoalId,
     summary,
     currentMonth,
+    activeFamilyMembers,
+    familyMembers,
   } = useFinance();
 
   const [activeTabMode, setActiveTabMode] = useState<'list' | 'planner'>(initialTab);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
   const [contributeTarget, setContributeTarget] = useState<FinancialGoal | null>(null);
 
-  // Quick stats
-  const totalGoals = goals.length;
-  const completedGoals = goals.filter((g) => g.status === 'completed');
-  const activeGoals = goals.filter((g) => g.status !== 'completed');
-  const totalTargetSum = goals.reduce((acc, cur) => acc + cur.targetAmount, 0);
-  const totalSavedSum = goals.reduce((acc, cur) => acc + cur.currentSavedAmount, 0);
+  // Filter goals by member first
+  const memberFilteredGoals = goals.filter((g) => {
+    if (selectedMemberFilter === 'all') return true;
+    if (selectedMemberFilter === 'family') return !g.memberId;
+    return g.memberId === selectedMemberFilter;
+  });
 
-  const filteredGoals = goals.filter(
+  // Quick stats
+  const totalGoals = memberFilteredGoals.length;
+  const completedGoals = memberFilteredGoals.filter((g) => g.status === 'completed');
+  const activeGoals = memberFilteredGoals.filter((g) => g.status !== 'completed');
+  const totalTargetSum = memberFilteredGoals.reduce((acc, cur) => acc + cur.targetAmount, 0);
+  const totalSavedSum = memberFilteredGoals.reduce((acc, cur) => acc + cur.currentSavedAmount, 0);
+
+  const filteredGoals = memberFilteredGoals.filter(
     (g) => filterStatus === 'all' || g.status === filterStatus
   );
 
@@ -177,6 +188,59 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ initialTab = 'list' }) => 
       {/* TAB: GOALS LIST */}
       {activeTabMode === 'list' && (
         <div className="space-y-6">
+          {/* Family Member Filter Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0 mr-1">
+              <Users className="w-3.5 h-3.5" />
+              <span>A'zo bo'yicha:</span>
+            </span>
+            <button
+              onClick={() => setSelectedMemberFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                selectedMemberFilter === 'all'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              Barchasi ({goals.length})
+            </button>
+            {activeFamilyMembers.map((member) => {
+              const memberCount = goals.filter((g) => g.memberId === member.id).length;
+              const isSelected = selectedMemberFilter === member.id;
+              return (
+                <button
+                  key={member.id}
+                  onClick={() => setSelectedMemberFilter(member.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white shadow-2xs'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{member.avatarEmoji || '👤'}</span>
+                  <span>{member.name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    {memberCount}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setSelectedMemberFilter('family')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
+                selectedMemberFilter === 'family'
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>👥</span>
+              <span>Umumiy oila</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedMemberFilter === 'family' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {goals.filter((g) => !g.memberId).length}
+              </span>
+            </button>
+          </div>
+
           {/* Status Filter */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             <button
@@ -197,7 +261,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ initialTab = 'list' }) => 
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              Reja boʻyicha ({goals.filter((g) => g.status === 'on_track').length})
+              Reja boʻyicha ({memberFilteredGoals.filter((g) => g.status === 'on_track').length})
             </button>
             <button
               onClick={() => setFilterStatus('at_risk')}
@@ -207,7 +271,7 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ initialTab = 'list' }) => 
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              Xavf ostida ({goals.filter((g) => g.status === 'at_risk').length})
+              Xavf ostida ({memberFilteredGoals.filter((g) => g.status === 'at_risk').length})
             </button>
             <button
               onClick={() => setFilterStatus('completed')}
@@ -238,6 +302,9 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ initialTab = 'list' }) => 
                 );
                 const statusMeta = GOAL_STATUS_LABELS[goal.status] || { label: goal.status };
                 const priorityMeta = GOAL_PRIORITY_LABELS[goal.priority] || { label: goal.priority };
+                const assignedMember = goal.memberId
+                  ? familyMembers.find((m) => m.id === goal.memberId)
+                  : null;
 
                 // Calculate required daily and weekly velocity
                 const analysis = analyzeGoalPlan(
@@ -256,8 +323,20 @@ export const GoalsView: React.FC<GoalsViewProps> = ({ initialTab = 'list' }) => 
                       {/* Header row */}
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-bold text-base text-slate-900">{goal.name}</h3>
+                            {/* Member badge */}
+                            {assignedMember ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                <span>{assignedMember.avatarEmoji || '👤'}</span>
+                                <span>{assignedMember.name}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                <Users className="w-2.5 h-2.5" />
+                                <span>Umumiy oilaviy</span>
+                              </span>
+                            )}
                             <span
                               className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                                 goal.status === 'completed'

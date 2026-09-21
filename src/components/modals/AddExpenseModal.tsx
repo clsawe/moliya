@@ -5,14 +5,21 @@ import { ExpenseCategory } from '../../types';
 import { EXPENSE_CATEGORY_LABELS, formatUZS } from '../../utils/formatters';
 
 export const AddExpenseModal: React.FC = () => {
-  const { activeModal, closeModal, addExpense, currentMonth } = useFinance();
+  const { activeModal, closeModal, addExpense, currentMonth, activeFamilyMembers } = useFinance();
 
   const [description, setDescription] = useState('');
   const [amountStr, setAmountStr] = useState('');
   const [date, setDate] = useState(() => `${currentMonth}-15`);
   const [category, setCategory] = useState<ExpenseCategory>('food');
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [isEssential, setIsEssential] = useState(true);
+
+  React.useEffect(() => {
+    if (activeFamilyMembers.length > 0 && !selectedMemberId) {
+      setSelectedMemberId(activeFamilyMembers[0].id);
+    }
+  }, [activeFamilyMembers, selectedMemberId]);
 
   if (activeModal !== 'expense') return null;
 
@@ -29,6 +36,7 @@ export const AddExpenseModal: React.FC = () => {
       category,
       isRecurring,
       isEssential,
+      memberId: selectedMemberId || null,
     });
 
     closeModal();
@@ -104,6 +112,24 @@ export const AddExpenseModal: React.FC = () => {
                 className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Oila aʼzosi <span className="text-rose-600 font-normal">(Kim sarfladi?)</span>
+            </label>
+            <select
+              value={selectedMemberId}
+              onChange={(e) => setSelectedMemberId(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 bg-white"
+            >
+              <option value="">Oila (Umumiy oilaviy xarajat)</option>
+              {activeFamilyMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.role === 'Owner' ? 'Boshliq' : member.role === 'Adult' ? 'Katta' : 'Farzand'})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

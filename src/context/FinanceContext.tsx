@@ -13,6 +13,10 @@ import {
   TaxEstimationResult,
   AppReminderNotification,
   UpcomingPaymentItem,
+  Family,
+  FamilyMember,
+  FamilyFinanceSummary,
+  MemberFinanceSummary,
 } from '../types';
 import {
   INITIAL_MONTH,
@@ -22,8 +26,15 @@ import {
   INITIAL_MANDATORY,
   INITIAL_GOALS,
   INITIAL_TAX_PROFILE,
+  INITIAL_FAMILY,
+  INITIAL_FAMILY_MEMBERS,
 } from '../data/initialData';
-import { calculateMonthlySummary, analyzeGoalPlan } from '../engine/financeCalculations';
+import {
+  calculateMonthlySummary,
+  analyzeGoalPlan,
+  calculateFamilySummary,
+  calculateFamilyBalance,
+} from '../engine/financeCalculations';
 import { calculateEstimatedTax, calculateDeadlineStatus } from '../config/taxRatesConfig';
 import { generateUpcomingReminders } from '../services/reminder/ReminderService';
 import { formatUzbekDate } from '../utils/formatters';
@@ -56,6 +67,16 @@ interface FinanceContextType {
 
   // Summaries
   summary: MonthlyFinancialSummary;
+  familySummary: FamilyFinanceSummary;
+
+  // Family & Members
+  family: Family;
+  familyMembers: FamilyMember[];
+  activeFamilyMembers: FamilyMember[];
+  createFamilyMember: (member: Omit<FamilyMember, 'id' | 'createdAt' | 'familyId'>) => FamilyMember;
+  updateFamilyMember: (id: string, updates: Partial<FamilyMember>) => void;
+  toggleFamilyMemberStatus: (id: string) => void;
+  updateFamily: (updates: Partial<Family>) => void;
   
   // Goal Planner
   selectedPlannerGoalId: string | null;
@@ -111,6 +132,9 @@ const STORAGE_KEYS = {
   TRANSACTIONS: 'moliya_payment_transactions_v1',
   TAX_PROFILE: 'moliya_tax_profile_v1',
   EXPENSES_SUBTAB: 'moliya_expenses_subtab_v1',
+  FAMILY: 'moliya_family_v1',
+  FAMILY_MEMBERS: 'moliya_family_members_v1',
+  SCHEMA_VERSION: 'moliya_schema_version',
 };
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -122,6 +146,27 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   });
   const [currentMonth, setCurrentMonthState] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEYS.CURRENT_MONTH) || INITIAL_MONTH;
+  });
+
+  // Family & Members state with safe migration check
+  const [family, setFamily] = useState<Family>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.FAMILY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading family:', e);
+    }
+    return INITIAL_FAMILY;
+  });
+
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.FAMILY_MEMBERS);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading family members:', e);
+    }
+    return INITIAL_FAMILY_MEMBERS;
   });
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
@@ -199,6 +244,36 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     localStorage.setItem(STORAGE_KEYS.TAX_PROFILE, JSON.stringify(taxProfile));
   }, [taxProfile]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FAMILY, JSON.stringify(family));
+  }, [family]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FAMILY_MEMBERS, JSON.stringify(familyMembers));
+  }, [familyMembers]);
+
+  // Safe migration check to ensure existing data is preserved and new family structure initialized
+  useEffect(() => {
+    try {
+      const version = localStorage.getItem(STORAGE_KEYS.SCHEMA_VERSION);
+      if (!version || parseInt(version, 10) < 2) {
+        if (!localStorage.getItem(STORAGE_KEYS.FAMILY)) {
+          localStorage.setItem(STORAGE_KEYS.FAMILY, JSON.stringify(INITIAL_FAMILY));
+        }
+        if (!localStorage.getItem(STORAGE_KEYS.FAMILY_MEMBERS)) {
+          localStorage.setItem(STORAGE_KEYS.FAMILY_MEMBERS, JSON.stringify(INITIAL_FAMILY_MEMBERS));
+        }
+        localStorage.setItem(STORAGE_KEYS.SCHEMA_VERSION, '2');
+      }
+    } catch (err) {
+      console.error('Migration error:', err);
+    }
+  }, []);
+
+  const activeFamilyMembers = useMemo(() => {
+    return familyMembers.filter((m) => m.active);
+  }, [familyMembers]);
+
   const setCurrentMonth = (month: string) => {
     setCurrentMonthState(month);
   };
@@ -207,6 +282,54 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const summary = useMemo(() => {
     return calculateMonthlySummary(currentMonth, incomes, expenses, utilities, mandatoryPayments, goals);
   }, [currentMonth, incomes, expenses, utilities, mandatoryPayments, goals]);
+
+  // Live recalculate family summary with member breakdown
+  const familySummary = useMemo(() => {
+    return calculateFamilySummary(
+      currentMonth,
+      familyMembers,
+      incomes,
+      expenses,
+      utilities,
+      mandatoryPayments,
+      goals
+    );
+  }, [currentMonth, familyMembers, incomes, expenses, utilities, mandatoryPayments, goals]);
+
+  // Family CRUD actions
+  const createFamilyMember = (member: Omit<FamilyMember, 'id' | 'createdAt' | 'familyId'>): FamilyMember => {
+    const newMember: FamilyMember = {
+      id: `mem-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      familyId: family.id,
+      name: member.name.trim(),
+      role: member.role,
+      avatar: member.avatar,
+      active: member.active ?? true,
+      createdAt: new Date().toISOString(),
+    };
+    setFamilyMembers((prev) => [...prev, newMember]);
+    return newMember;
+  };
+
+  const updateFamilyMember = (id: string, updates: Partial<FamilyMember>) => {
+    setFamilyMembers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+    );
+  };
+
+  const toggleFamilyMemberStatus = (id: string) => {
+    setFamilyMembers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m))
+    );
+  };
+
+  const updateFamily = (updates: Partial<Family>) => {
+    setFamily((prev) => ({
+      ...prev,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }));
+  };
 
   // Tax Estimation based on current income and user tax profile
   const estimatedTax = useMemo(() => {
@@ -317,6 +440,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         iconType: isTax ? 'tax' : 'mandatory',
         targetTab: 'expenses',
         targetSubTab: 'mandatory',
+        memberId: m.memberId,
       });
     });
 
@@ -349,6 +473,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         iconType: 'utility',
         targetTab: 'expenses',
         targetSubTab: 'utilities',
+        memberId: u.memberId,
       });
     });
 
@@ -370,6 +495,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         iconType: 'goal',
         targetTab: 'goals',
         targetSubTab: 'planner',
+        memberId: g.memberId,
       });
     });
 
@@ -597,6 +723,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setUtilities(INITIAL_UTILITIES);
     setMandatoryPayments(INITIAL_MANDATORY);
     setGoals(INITIAL_GOALS);
+    setFamily(INITIAL_FAMILY);
+    setFamilyMembers(INITIAL_FAMILY_MEMBERS);
     setPaymentTransactions([]);
     setTaxProfile(INITIAL_TAX_PROFILE);
     setExpensesSubTab('everyday');
@@ -607,6 +735,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     localStorage.removeItem(STORAGE_KEYS.UTILITIES);
     localStorage.removeItem(STORAGE_KEYS.MANDATORY);
     localStorage.removeItem(STORAGE_KEYS.GOALS);
+    localStorage.removeItem(STORAGE_KEYS.FAMILY);
+    localStorage.removeItem(STORAGE_KEYS.FAMILY_MEMBERS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_MONTH);
     localStorage.removeItem(STORAGE_KEYS.TRANSACTIONS);
     localStorage.removeItem(STORAGE_KEYS.TAX_PROFILE);
@@ -616,6 +746,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const exportDataJSON = () => {
     const payload = {
       currentMonth,
+      family,
+      familyMembers,
       incomes,
       expenses,
       utilities,
@@ -631,6 +763,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const importDataJSON = (jsonStr: string): boolean => {
     try {
       const parsed = JSON.parse(jsonStr);
+      if (parsed.family) setFamily(parsed.family);
+      if (parsed.familyMembers && Array.isArray(parsed.familyMembers)) setFamilyMembers(parsed.familyMembers);
       if (parsed.incomes && Array.isArray(parsed.incomes)) setIncomes(parsed.incomes);
       if (parsed.expenses && Array.isArray(parsed.expenses)) setExpenses(parsed.expenses);
       if (parsed.utilities && Array.isArray(parsed.utilities)) setUtilities(parsed.utilities);
@@ -676,6 +810,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         reminders,
         upcomingPayments,
         summary,
+        familySummary,
+        family,
+        familyMembers,
+        activeFamilyMembers,
+        createFamilyMember,
+        updateFamilyMember,
+        toggleFamilyMemberStatus,
+        updateFamily,
         selectedPlannerGoalId,
         setSelectedPlannerGoalId,
         activeGoalPlan,

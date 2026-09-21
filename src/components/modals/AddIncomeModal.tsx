@@ -5,14 +5,22 @@ import { IncomeCategory } from '../../types';
 import { INCOME_CATEGORY_LABELS, formatUZS } from '../../utils/formatters';
 
 export const AddIncomeModal: React.FC = () => {
-  const { activeModal, closeModal, addIncome, currentMonth } = useFinance();
+  const { activeModal, closeModal, addIncome, currentMonth, activeFamilyMembers } = useFinance();
   
   const [name, setName] = useState('');
   const [amountStr, setAmountStr] = useState('');
   const [date, setDate] = useState(() => `${currentMonth}-15`);
   const [category, setCategory] = useState<IncomeCategory>('salary');
   const [isRecurring, setIsRecurring] = useState(true);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [notes, setNotes] = useState('');
+
+  // Set default member if available on first open
+  React.useEffect(() => {
+    if (activeFamilyMembers.length > 0 && !selectedMemberId) {
+      setSelectedMemberId(activeFamilyMembers[0].id);
+    }
+  }, [activeFamilyMembers, selectedMemberId]);
 
   if (activeModal !== 'income') return null;
 
@@ -29,6 +37,7 @@ export const AddIncomeModal: React.FC = () => {
       isRecurring,
       category,
       notes: notes.trim() || undefined,
+      memberId: selectedMemberId || null,
     });
 
     closeModal();
@@ -106,6 +115,24 @@ export const AddIncomeModal: React.FC = () => {
                 className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Oila aʼzosi <span className="text-emerald-600 font-normal">(Kimga tegishli?)</span>
+            </label>
+            <select
+              value={selectedMemberId}
+              onChange={(e) => setSelectedMemberId(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+            >
+              <option value="">Oila (Umumiy oilaviy daromad)</option>
+              {activeFamilyMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({member.role === 'Owner' ? 'Boshliq' : member.role === 'Adult' ? 'Katta' : 'Farzand'})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
