@@ -1,0 +1,6 @@
+{
+  "name": "Oila va Shaxsiy Moliya",
+  "description": "Oila va shaxsiy byudjet, daromad, xarajatlar, kommunal to'lovlar va maqsadli xarajatlarni hisoblash tizimi",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,721 @@
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import {
+  Income,
+  Expense,
+  UtilityBill,
+  MandatoryPayment,
+  FinancialGoal,
+  MonthlyFinancialSummary,
+  GoalPlanAnalysis,
+  ActiveTab,
+  PaymentTransaction,
+  TaxProfile,
+  TaxEstimationResult,
+  AppReminderNotification,
+  UpcomingPaymentItem,
+} from '../types';
+import {
+  INITIAL_MONTH,
+  INITIAL_INCOMES,
+  INITIAL_EXPENSES,
+  INITIAL_UTILITIES,
+  INITIAL_MANDATORY,
+  INITIAL_GOALS,
+  INITIAL_TAX_PROFILE,
+} from '../data/initialData';
+import { calculateMonthlySummary, analyzeGoalPlan } from '../engine/financeCalculations';
+import { calculateEstimatedTax, calculateDeadlineStatus } from '../config/taxRatesConfig';
+import { generateUpcomingReminders } from '../services/reminder/ReminderService';
+import { formatUzbekDate } from '../utils/formatters';
+
+interface FinanceContextType {
+  activeTab: ActiveTab;
+  setActiveTab: (tab: ActiveTab) => void;
+  expensesSubTab: 'everyday' | 'utilities' | 'mandatory' | 'analytics';
+  setExpensesSubTab: (tab: 'everyday' | 'utilities' | 'mandatory' | 'analytics') => void;
+  currentMonth: string;
+  setCurrentMonth: (month: string) => void;
+  
+  // Data
+  incomes: Income[];
+  expenses: Expense[];
+  utilities: UtilityBill[];
+  mandatoryPayments: MandatoryPayment[];
+  goals: FinancialGoal[];
+  paymentTransactions: PaymentTransaction[];
+
+  // Tax Profile & Automation
+  taxProfile: TaxProfile;
+  updateTaxProfile: (updates: Partial<TaxProfile>) => void;
+  estimatedTax: TaxEstimationResult;
+  syncEstimatedTaxToMonth: (monthStr?: string) => void;
+
+  // Reminders & Upcoming Payments
+  reminders: AppReminderNotification[];
+  upcomingPayments: UpcomingPaymentItem[];
+
+  // Summaries
+  summary: MonthlyFinancialSummary;
+  
+  // Goal Planner
+  selectedPlannerGoalId: string | null;
+  setSelectedPlannerGoalId: (id: string | null) => void;
+  activeGoalPlan: GoalPlanAnalysis;
+  planCustomGoal: (amount: number, name: string, month?: string) => GoalPlanAnalysis;
+
+  // Actions
+  addIncome: (income: Omit<Income, 'id'>) => void;
+  updateIncome: (id: string, updates: Partial<Income>) => void;
+  deleteIncome: (id: string) => void;
+
+  addExpense: (expense: Omit<Expense, 'id'>) => void;
+  updateExpense: (id: string, updates: Partial<Expense>) => void;
+  deleteExpense: (id: string) => void;
+
+  addUtility: (utility: Omit<UtilityBill, 'id'>) => void;
+  updateUtility: (id: string, updates: Partial<UtilityBill>) => void;
+  deleteUtility: (id: string) => void;
+  toggleUtilityPaid: (id: string) => void;
+
+  addMandatory: (mandatory: Omit<MandatoryPayment, 'id'>) => void;
+  updateMandatory: (id: string, updates: Partial<MandatoryPayment>) => void;
+  deleteMandatory: (id: string) => void;
+  toggleMandatoryPaid: (id: string) => void;
+
+  addGoal: (goal: Omit<FinancialGoal, 'id'>) => void;
+  updateGoal: (id: string, updates: Partial<FinancialGoal>) => void;
+  deleteGoal: (id: string) => void;
+  contributeToGoal: (id: string, amount: number) => void;
+
+  // Payment transactions
+  recordPaymentTransaction: (transaction: PaymentTransaction) => void;
+
+  // Utility Actions
+  resetToDemoData: () => void;
+  exportDataJSON: () => string;
+  importDataJSON: (jsonStr: string) => boolean;
+
+  // Modals helper
+  activeModal: 'income' | 'expense' | 'utility' | 'mandatory' | 'goal' | null;
+  openModal: (type: 'income' | 'expense' | 'utility' | 'mandatory' | 'goal' | null) => void;
+  closeModal: () => void;
+}
+
+const STORAGE_KEYS = {
+  INCOMES: 'moliya_incomes_v1',
+  EXPENSES: 'moliya_expenses_v1',
+  UTILITIES: 'moliya_utilities_v1',
+  MANDATORY: 'moliya_mandatory_v1',
+  GOALS: 'moliya_goals_v1',
+  CURRENT_MONTH: 'moliya_active_month_v1',
+  TRANSACTIONS: 'moliya_payment_transactions_v1',
+  TAX_PROFILE: 'moliya_tax_profile_v1',
+  EXPENSES_SUBTAB: 'moliya_expenses_subtab_v1',
+};
+
+const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
+
+export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const [expensesSubTab, setExpensesSubTab] = useState<'everyday' | 'utilities' | 'mandatory' | 'analytics'>(() => {
+    return (localStorage.getItem(STORAGE_KEYS.EXPENSES_SUBTAB) as any) || 'everyday';
+  });
+  const [currentMonth, setCurrentMonthState] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEYS.CURRENT_MONTH) || INITIAL_MONTH;
+  });
+
+  const [incomes, setIncomes] = useState<Income[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.INCOMES);
+    return saved ? JSON.parse(saved) : INITIAL_INCOMES;
+  });
+
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.EXPENSES);
+    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
+  });
+
+  const [utilities, setUtilities] = useState<UtilityBill[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.UTILITIES);
+    return saved ? JSON.parse(saved) : INITIAL_UTILITIES;
+  });
+
+  const [mandatoryPayments, setMandatoryPayments] = useState<MandatoryPayment[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.MANDATORY);
+    return saved ? JSON.parse(saved) : INITIAL_MANDATORY;
+  });
+
+  const [goals, setGoals] = useState<FinancialGoal[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.GOALS);
+    return saved ? JSON.parse(saved) : INITIAL_GOALS;
+  });
+
+  const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [taxProfile, setTaxProfile] = useState<TaxProfile>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.TAX_PROFILE);
+    return saved ? JSON.parse(saved) : INITIAL_TAX_PROFILE;
+  });
+
+  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState<string | null>('goal-1');
+  const [activeModal, setActiveModal] = useState<'income' | 'expense' | 'utility' | 'mandatory' | 'goal' | null>(null);
+
+  // Sync to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CURRENT_MONTH, currentMonth);
+  }, [currentMonth]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.EXPENSES_SUBTAB, expensesSubTab);
+  }, [expensesSubTab]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.INCOMES, JSON.stringify(incomes));
+  }, [incomes]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
+  }, [expenses]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.UTILITIES, JSON.stringify(utilities));
+  }, [utilities]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MANDATORY, JSON.stringify(mandatoryPayments));
+  }, [mandatoryPayments]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
+  }, [goals]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(paymentTransactions));
+  }, [paymentTransactions]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.TAX_PROFILE, JSON.stringify(taxProfile));
+  }, [taxProfile]);
+
+  const setCurrentMonth = (month: string) => {
+    setCurrentMonthState(month);
+  };
+
+  // Live recalculate summary
+  const summary = useMemo(() => {
+    return calculateMonthlySummary(currentMonth, incomes, expenses, utilities, mandatoryPayments, goals);
+  }, [currentMonth, incomes, expenses, utilities, mandatoryPayments, goals]);
+
+  // Tax Estimation based on current income and user tax profile
+  const estimatedTax = useMemo(() => {
+    return calculateEstimatedTax(taxProfile, summary.totalIncome);
+  }, [taxProfile, summary.totalIncome]);
+
+  // Auto-sync tax reservation if profile has autoReserveFromIncome enabled
+  useEffect(() => {
+    if (taxProfile.autoReserveFromIncome) {
+      const taxAmount = estimatedTax.amountToPay;
+      setMandatoryPayments((prev) => {
+        const existingIdx = prev.findIndex(
+          (m) => m.category === 'tax' && m.month === currentMonth && (m.isEstimated || m.id.startsWith('man-tax'))
+        );
+
+        if (existingIdx >= 0) {
+          const existing = prev[existingIdx];
+          if (!existing.isPaid && existing.amount !== taxAmount) {
+            const copy = [...prev];
+            copy[existingIdx] = {
+              ...existing,
+              amount: taxAmount,
+              taxType: taxProfile.taxType,
+              isEstimated: true,
+            };
+            return copy;
+          }
+        }
+        return prev;
+      });
+    }
+  }, [estimatedTax.amountToPay, currentMonth, taxProfile.autoReserveFromIncome, taxProfile.taxType]);
+
+  const updateTaxProfile = (updates: Partial<TaxProfile>) => {
+    setTaxProfile((prev) => ({ ...prev, ...updates }));
+  };
+
+  const syncEstimatedTaxToMonth = (targetMonth = currentMonth) => {
+    const currentIncomeTotal = incomes
+      .filter((i) => i.date.startsWith(targetMonth))
+      .reduce((acc, cur) => acc + cur.amount, 0);
+
+    const calc = calculateEstimatedTax(taxProfile, currentIncomeTotal);
+    const taxAmount = calc.amountToPay;
+
+    setMandatoryPayments((prev) => {
+      const existingIdx = prev.findIndex(
+        (m) => m.category === 'tax' && m.month === targetMonth && (m.isEstimated || m.id.startsWith('man-tax'))
+      );
+
+      if (existingIdx >= 0) {
+        const existing = prev[existingIdx];
+        if (!existing.isPaid) {
+          const copy = [...prev];
+          copy[existingIdx] = {
+            ...existing,
+            amount: taxAmount,
+            taxType: taxProfile.taxType,
+            isEstimated: true,
+          };
+          return copy;
+        }
+        return prev;
+      }
+
+      const newTax: MandatoryPayment = {
+        id: `man-tax-${Date.now()}`,
+        name: `JShODS / Daromad solig‘i (${targetMonth})`,
+        category: 'tax',
+        amount: taxAmount,
+        month: targetMonth,
+        dueDate: `${targetMonth}-${String(taxProfile.dueDayOfMonth || 15).padStart(2, '0')}`,
+        isPaid: false,
+        taxType: taxProfile.taxType,
+        isOfficial: false,
+        isEstimated: true,
+        notes: 'Oylik daromaddan hisoblangan taxminiy soliq zaxirasi',
+      };
+      return [newTax, ...prev];
+    });
+  };
+
+  // Generate Reminders
+  const reminders = useMemo(() => {
+    return generateUpcomingReminders(mandatoryPayments, utilities, taxProfile);
+  }, [mandatoryPayments, utilities, taxProfile]);
+
+  // Upcoming Payments for Dashboard
+  const upcomingPayments = useMemo(() => {
+    const items: UpcomingPaymentItem[] = [];
+
+    // 1. Mandatory Payments & Taxes for current month
+    const monthMandatory = mandatoryPayments.filter((m) => !m.isPaid && m.month === currentMonth);
+    monthMandatory.forEach((m) => {
+      const { status, daysRemaining, statusLabel, badgeColorClass } = calculateDeadlineStatus(m.dueDate, m.isPaid);
+      const isTax = m.category === 'tax';
+      items.push({
+        id: m.id,
+        type: 'tax',
+        title: isTax ? (m.name.includes('Soliq') ? m.name : `Soliq (${m.name})`) : m.name,
+        amount: m.amount,
+        dueDate: m.dueDate,
+        dueDateLabel: formatUzbekDate(m.dueDate),
+        daysRemaining,
+        status,
+        statusLabel,
+        badgeColorClass,
+        iconType: isTax ? 'tax' : 'mandatory',
+        targetTab: 'expenses',
+        targetSubTab: 'mandatory',
+      });
+    });
+
+    // 2. Unpaid Utilities for current month
+    const monthUtilities = utilities.filter((u) => !u.isPaid && u.month === currentMonth);
+    monthUtilities.forEach((u) => {
+      const { status, daysRemaining, statusLabel, badgeColorClass } = calculateDeadlineStatus(u.dueDate, u.isPaid);
+      const utilName =
+        u.category === 'electricity'
+          ? 'Elektr'
+          : u.category === 'gas'
+          ? 'Tabiiy gaz'
+          : u.category === 'water'
+          ? 'Suv taʼminoti'
+          : u.category === 'internet'
+          ? 'Internet'
+          : u.description || u.category;
+
+      items.push({
+        id: u.id,
+        type: 'utility',
+        title: utilName,
+        amount: u.amount,
+        dueDate: u.dueDate,
+        dueDateLabel: formatUzbekDate(u.dueDate),
+        daysRemaining,
+        status,
+        statusLabel,
+        badgeColorClass,
+        iconType: 'utility',
+        targetTab: 'expenses',
+        targetSubTab: 'utilities',
+      });
+    });
+
+    // 3. Active Financial Goals
+    const activeGoals = goals.filter((g) => g.status !== 'completed');
+    activeGoals.forEach((g) => {
+      const needed = Math.max(0, g.targetAmount - g.currentSavedAmount);
+      items.push({
+        id: g.id,
+        type: 'goal',
+        title: g.name,
+        amount: needed,
+        dueDate: g.deadline,
+        dueDateLabel: formatUzbekDate(g.deadline),
+        daysRemaining: 0,
+        status: 'scheduled',
+        statusLabel: 'Rejalashtirilgan zaxira',
+        badgeColorClass: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        iconType: 'goal',
+        targetTab: 'goals',
+        targetSubTab: 'planner',
+      });
+    });
+
+    return items;
+  }, [mandatoryPayments, utilities, goals, currentMonth]);
+
+  // Goal plan analysis for the currently selected goal or fallback
+  const activeGoalPlan = useMemo(() => {
+    const activeGoal = goals.find((g) => g.id === selectedPlannerGoalId) || goals[0];
+    if (activeGoal) {
+      return analyzeGoalPlan(
+        activeGoal.targetAmount,
+        activeGoal.name,
+        currentMonth,
+        summary,
+        undefined,
+        activeGoal.id
+      );
+    }
+    return analyzeGoalPlan(1000000, 'Telefon xarid qilish', currentMonth, summary);
+  }, [goals, selectedPlannerGoalId, currentMonth, summary]);
+
+  const planCustomGoal = (amount: number, name: string, month = currentMonth) => {
+    return analyzeGoalPlan(amount, name, month, summary);
+  };
+
+  // CRUD Incomes
+  const addIncome = (income: Omit<Income, 'id'>) => {
+    const newRecord: Income = {
+      ...income,
+      id: `inc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      amount: Math.round(Number(income.amount) || 0),
+    };
+    setIncomes((prev) => [newRecord, ...prev]);
+  };
+
+  const updateIncome = (id: string, updates: Partial<Income>) => {
+    setIncomes((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates, amount: updates.amount !== undefined ? Math.round(Number(updates.amount)) : item.amount } : item))
+    );
+  };
+
+  const deleteIncome = (id: string) => {
+    setIncomes((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // CRUD Expenses
+  const addExpense = (expense: Omit<Expense, 'id'>) => {
+    const newRecord: Expense = {
+      ...expense,
+      id: `exp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      amount: Math.round(Number(expense.amount) || 0),
+    };
+    setExpenses((prev) => [newRecord, ...prev]);
+  };
+
+  const updateExpense = (id: string, updates: Partial<Expense>) => {
+    setExpenses((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates, amount: updates.amount !== undefined ? Math.round(Number(updates.amount)) : item.amount } : item))
+    );
+  };
+
+  const deleteExpense = (id: string) => {
+    setExpenses((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // CRUD Utilities
+  const addUtility = (utility: Omit<UtilityBill, 'id'>) => {
+    const newRecord: UtilityBill = {
+      ...utility,
+      id: `ut-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      amount: Math.round(Number(utility.amount) || 0),
+    };
+    setUtilities((prev) => [newRecord, ...prev]);
+  };
+
+  const updateUtility = (id: string, updates: Partial<UtilityBill>) => {
+    setUtilities((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates, amount: updates.amount !== undefined ? Math.round(Number(updates.amount)) : item.amount } : item))
+    );
+  };
+
+  const deleteUtility = (id: string) => {
+    setUtilities((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const toggleUtilityPaid = (id: string) => {
+    setUtilities((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const nextPaid = !item.isPaid;
+          return {
+            ...item,
+            isPaid: nextPaid,
+            paidDate: nextPaid ? new Date().toISOString().split('T')[0] : undefined,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  // CRUD Mandatory
+  const addMandatory = (mandatory: Omit<MandatoryPayment, 'id'>) => {
+    const newRecord: MandatoryPayment = {
+      ...mandatory,
+      id: `man-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      amount: Math.round(Number(mandatory.amount) || 0),
+    };
+    setMandatoryPayments((prev) => [newRecord, ...prev]);
+  };
+
+  const updateMandatory = (id: string, updates: Partial<MandatoryPayment>) => {
+    setMandatoryPayments((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates, amount: updates.amount !== undefined ? Math.round(Number(updates.amount)) : item.amount } : item))
+    );
+  };
+
+  const deleteMandatory = (id: string) => {
+    setMandatoryPayments((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const toggleMandatoryPaid = (id: string) => {
+    setMandatoryPayments((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const nextPaid = !item.isPaid;
+          return {
+            ...item,
+            isPaid: nextPaid,
+            paidDate: nextPaid ? new Date().toISOString().split('T')[0] : undefined,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  // CRUD Goals
+  const addGoal = (goal: Omit<FinancialGoal, 'id'>) => {
+    const targetAmount = Math.round(Number(goal.targetAmount) || 0);
+    const currentSavedAmount = Math.round(Number(goal.currentSavedAmount) || 0);
+    const newRecord: FinancialGoal = {
+      ...goal,
+      id: `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      targetAmount,
+      currentSavedAmount,
+      status: currentSavedAmount >= targetAmount ? 'completed' : goal.status,
+    };
+    setGoals((prev) => [newRecord, ...prev]);
+    setSelectedPlannerGoalId(newRecord.id);
+  };
+
+  const updateGoal = (id: string, updates: Partial<FinancialGoal>) => {
+    setGoals((prev) =>
+      prev.map((item) => {
+        if (item.id === id) {
+          const targetAmount = updates.targetAmount !== undefined ? Math.round(Number(updates.targetAmount)) : item.targetAmount;
+          const currentSavedAmount = updates.currentSavedAmount !== undefined ? Math.round(Number(updates.currentSavedAmount)) : item.currentSavedAmount;
+          let status = updates.status || item.status;
+          if (currentSavedAmount >= targetAmount) {
+            status = 'completed';
+          }
+          return { ...item, ...updates, targetAmount, currentSavedAmount, status };
+        }
+        return item;
+      })
+    );
+  };
+
+  const deleteGoal = (id: string) => {
+    setGoals((prev) => {
+      const remaining = prev.filter((item) => item.id !== id);
+      if (selectedPlannerGoalId === id) {
+        setSelectedPlannerGoalId(remaining.length > 0 ? remaining[0].id : null);
+      }
+      return remaining;
+    });
+  };
+
+  const contributeToGoal = (id: string, amount: number) => {
+    const cleanAmount = Math.round(Number(amount) || 0);
+    if (cleanAmount <= 0) return;
+    setGoals((prev) =>
+      prev.map((g) => {
+        if (g.id === id) {
+          const newSaved = g.currentSavedAmount + cleanAmount;
+          return {
+            ...g,
+            currentSavedAmount: newSaved,
+            status: newSaved >= g.targetAmount ? 'completed' : g.status,
+          };
+        }
+        return g;
+      })
+    );
+  };
+
+  // Record payment transaction (strictly links confirmed payments to utility expense)
+  const recordPaymentTransaction = (transaction: PaymentTransaction) => {
+    setPaymentTransactions((prev) => [transaction, ...prev]);
+
+    // If transaction is completed and linked to a utility bill, mark the utility as confirmed paid
+    if (transaction.status === 'completed' && transaction.utilityBillId) {
+      setUtilities((prev) =>
+        prev.map((u) => {
+          if (u.id === transaction.utilityBillId) {
+            return {
+              ...u,
+              isPaid: true,
+              paidDate: transaction.completedAt?.split('T')[0] || new Date().toISOString().split('T')[0],
+              paymentTransactionId: transaction.id,
+            };
+          }
+          return u;
+        })
+      );
+    }
+  };
+
+  // Reset to Demo
+  const resetToDemoData = () => {
+    setIncomes(INITIAL_INCOMES);
+    setExpenses(INITIAL_EXPENSES);
+    setUtilities(INITIAL_UTILITIES);
+    setMandatoryPayments(INITIAL_MANDATORY);
+    setGoals(INITIAL_GOALS);
+    setPaymentTransactions([]);
+    setTaxProfile(INITIAL_TAX_PROFILE);
+    setExpensesSubTab('everyday');
+    setCurrentMonthState(INITIAL_MONTH);
+    setSelectedPlannerGoalId('goal-1');
+    localStorage.removeItem(STORAGE_KEYS.INCOMES);
+    localStorage.removeItem(STORAGE_KEYS.EXPENSES);
+    localStorage.removeItem(STORAGE_KEYS.UTILITIES);
+    localStorage.removeItem(STORAGE_KEYS.MANDATORY);
+    localStorage.removeItem(STORAGE_KEYS.GOALS);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_MONTH);
+    localStorage.removeItem(STORAGE_KEYS.TRANSACTIONS);
+    localStorage.removeItem(STORAGE_KEYS.TAX_PROFILE);
+    localStorage.removeItem(STORAGE_KEYS.EXPENSES_SUBTAB);
+  };
+
+  const exportDataJSON = () => {
+    const payload = {
+      currentMonth,
+      incomes,
+      expenses,
+      utilities,
+      mandatoryPayments,
+      goals,
+      paymentTransactions,
+      taxProfile,
+      exportedAt: new Date().toISOString(),
+    };
+    return JSON.stringify(payload, null, 2);
+  };
+
+  const importDataJSON = (jsonStr: string): boolean => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (parsed.incomes && Array.isArray(parsed.incomes)) setIncomes(parsed.incomes);
+      if (parsed.expenses && Array.isArray(parsed.expenses)) setExpenses(parsed.expenses);
+      if (parsed.utilities && Array.isArray(parsed.utilities)) setUtilities(parsed.utilities);
+      if (parsed.mandatoryPayments && Array.isArray(parsed.mandatoryPayments)) setMandatoryPayments(parsed.mandatoryPayments);
+      if (parsed.goals && Array.isArray(parsed.goals)) setGoals(parsed.goals);
+      if (parsed.paymentTransactions && Array.isArray(parsed.paymentTransactions)) setPaymentTransactions(parsed.paymentTransactions);
+      if (parsed.taxProfile) setTaxProfile(parsed.taxProfile);
+      if (parsed.currentMonth && typeof parsed.currentMonth === 'string') setCurrentMonthState(parsed.currentMonth);
+      return true;
+    } catch (e) {
+      console.error('Import failed', e);
+      return false;
+    }
+  };
+
+  const openModal = (type: 'income' | 'expense' | 'utility' | 'mandatory' | 'goal' | null) => {
+    setActiveModal(type);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+  };
+
+  return (
+    <FinanceContext.Provider
+      value={{
+        activeTab,
+        setActiveTab,
+        expensesSubTab,
+        setExpensesSubTab,
+        currentMonth,
+        setCurrentMonth,
+        incomes,
+        expenses,
+        utilities,
+        mandatoryPayments,
+        goals,
+        paymentTransactions,
+        taxProfile,
+        updateTaxProfile,
+        estimatedTax,
+        syncEstimatedTaxToMonth,
+        reminders,
+        upcomingPayments,
+        summary,
+        selectedPlannerGoalId,
+        setSelectedPlannerGoalId,
+        activeGoalPlan,
+        planCustomGoal,
+        addIncome,
+        updateIncome,
+        deleteIncome,
+        addExpense,
+        updateExpense,
+        deleteExpense,
+        addUtility,
+        updateUtility,
+        deleteUtility,
+        toggleUtilityPaid,
+        addMandatory,
+        updateMandatory,
+        deleteMandatory,
+        toggleMandatoryPaid,
+        addGoal,
+        updateGoal,
+        deleteGoal,
+        contributeToGoal,
+        recordPaymentTransaction,
+        resetToDemoData,
+        exportDataJSON,
+        importDataJSON,
+        activeModal,
+        openModal,
+        closeModal,
+      }}
+    >
+      {children}
+    </FinanceContext.Provider>
+  );
+};
+
+export const useFinance = () => {
+  const context = useContext(FinanceContext);
+  if (!context) {
+    throw new Error('useFinance must be used within a FinanceProvider');
+  }
+  return context;
+};
