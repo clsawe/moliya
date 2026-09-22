@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { X, TrendingUp } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { IncomeCategory } from '../../types';
-import { INCOME_CATEGORY_LABELS, formatUZS } from '../../utils/formatters';
+import { INCOME_CATEGORY_LABELS } from '../../utils/formatters';
 
 export const AddIncomeModal: React.FC = () => {
   const { activeModal, closeModal, addIncome, currentMonth, activeFamilyMembers } = useFinance();
+  const { t, formatCurrency } = useLanguage();
   
   const [name, setName] = useState('');
   const [amountStr, setAmountStr] = useState('');
@@ -48,18 +50,19 @@ export const AddIncomeModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <h2 className="text-base font-bold text-slate-900">Daromad manbasini qoʻshish</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{t('btn_add_income')}</h2>
           </div>
           <button
             onClick={closeModal}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+            className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+            aria-label={t('btn_cancel')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -67,7 +70,7 @@ export const AddIncomeModal: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Daromad nomi <span className="text-rose-500">*</span>
             </label>
             <input
@@ -76,13 +79,13 @@ export const AddIncomeModal: React.FC = () => {
               placeholder="Masalan: Asosiy maosh, Frilans loyiha, Doʻkon tushumi"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Summa (soʻmda) <span className="text-rose-500">*</span>
               </label>
               <input
@@ -94,107 +97,104 @@ export const AddIncomeModal: React.FC = () => {
                   const val = e.target.value.replace(/[^\d]/g, '');
                   setAmountStr(val ? parseInt(val, 10).toLocaleString('ru-RU') : '');
                 }}
-                className="w-full px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               />
               {rawAmount > 0 && (
-                <p className="mt-1 text-[11px] text-emerald-700 font-medium">
-                  {formatUZS(rawAmount)}
+                <p className="mt-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                  {formatCurrency(rawAmount)}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Sana <span className="text-rose-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Kategoriya
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as IncomeCategory)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+              >
+                {Object.entries(INCOME_CATEGORY_LABELS).map(([key, meta]) => (
+                  <option key={key} value={key}>
+                    {meta.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Qabul qilingan sana
               </label>
               <input
                 type="date"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Oila aʼzosi <span className="text-emerald-600 font-normal">(Kimga tegishli?)</span>
-            </label>
-            <select
-              value={selectedMemberId}
-              onChange={(e) => setSelectedMemberId(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
-            >
-              <option value="">Oila (Umumiy oilaviy daromad)</option>
-              {activeFamilyMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} ({member.role === 'Owner' ? 'Boshliq' : member.role === 'Adult' ? 'Katta' : 'Farzand'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Daromad toifasi
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t('family_title')}
               </label>
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as IncomeCategory)}
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+                value={selectedMemberId}
+                onChange={(e) => setSelectedMemberId(e.target.value)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 font-medium"
               >
-                {Object.entries(INCOME_CATEGORY_LABELS).map(([catKey, { label }]) => (
-                  <option key={catKey} value={catKey}>
-                    {label}
+                <option value="">👥 Umumiy oilaviy daromad</option>
+                {activeFamilyMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.avatarEmoji || '👤'} {m.name} ({m.role})
                   </option>
                 ))}
               </select>
             </div>
-
-            <div className="flex items-center pt-6">
-              <label className="relative flex items-center gap-2.5 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={isRecurring}
-                  onChange={(e) => setIsRecurring(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-                <span className="text-xs font-medium text-slate-700">
-                  Har oy takrorlanuvchi daromad
-                </span>
-              </label>
-            </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Qoʻshimcha izoh (ixtiyoriy)
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Izoh yoki qoʻshimcha tafsilot (ixtiyoriy)
             </label>
-            <textarea
-              rows={2}
-              placeholder="Masalan: Plastik kartaga oʻtkaziladi, soliq toʻlangach sof summa"
+            <input
+              type="text"
+              placeholder="Masalan: Kvartal bonusi, sovgʻa"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
             />
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-2">
+            <label className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>Har oy takrorlanuvchi doimiy daromad (avtomatik rejalashtirish uchun)</span>
+            </label>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+              className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
             >
-              Bekor qilish
+              {t('btn_cancel')}
             </button>
             <button
               type="submit"
-              disabled={rawAmount <= 0 || !name.trim()}
-              className="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs transition-colors"
+              className="min-h-[44px] px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors cursor-pointer"
             >
-              Saqlash
+              {t('btn_save')}
             </button>
           </div>
         </form>

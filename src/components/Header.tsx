@@ -11,9 +11,12 @@ import {
   Target,
   Sparkles,
   Settings,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
-import { formatUZS, formatMonthName } from '../utils/formatters';
+import { useLanguage } from '../i18n/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface HeaderProps {
   onToggleMobileMenu: () => void;
@@ -21,6 +24,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   const { currentMonth, setCurrentMonth, summary, openModal, setActiveTab, activeTab } = useFinance();
+  const { t, formatCurrency, formatMonth } = useLanguage();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -50,32 +55,36 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
     setCurrentMonth(newMonthStr);
   };
 
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
-    <header className="h-16 px-4 md:px-8 bg-white border-b border-slate-200 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-16 px-4 md:px-8 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 z-30 transition-colors">
       <div className="flex items-center gap-3">
         <button
           onClick={onToggleMobileMenu}
-          className="md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-          aria-label="Menyuni ochish"
+          className="md:hidden min-h-[44px] min-w-[44px] p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors"
+          aria-label={t('open_menu')}
         >
           <Menu className="w-5 h-5" />
         </button>
 
         {/* Month Selector */}
-        <div className="flex items-center bg-slate-100/90 rounded-xl p-1 border border-slate-200/60 shadow-2xs">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
           <button
             onClick={handlePrevMonth}
-            className="p-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-white transition-all"
+            className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all flex items-center justify-center"
             title="Oldingi oy"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="px-3 text-xs font-semibold text-slate-800 select-none min-w-[110px] text-center">
-            {formatMonthName(currentMonth)}
+          <span className="px-3 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 select-none min-w-[120px] text-center">
+            {formatMonth(currentMonth)}
           </span>
           <button
             onClick={handleNextMonth}
-            className="p-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-white transition-all"
+            className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all flex items-center justify-center"
             title="Keyingi oy"
           >
             <ChevronRight className="w-4 h-4" />
@@ -86,47 +95,48 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
       {/* Right Actions */}
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Safe-to-spend Quick Pill */}
-        <div
+        <button
+          type="button"
           onClick={() => setActiveTab('dashboard')}
-          className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 cursor-pointer hover:bg-emerald-100/80 transition-all"
-          title="Bosh sahifada xavfsiz sarflash darajasini koʻrish"
+          className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all text-xs font-medium cursor-pointer"
         >
-          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="text-xs font-medium">Xavfsiz (bugun):</span>
-          <span className="text-xs font-bold">{formatUZS(summary.safeToSpendDaily)}</span>
-        </div>
+          <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>{t('card_safe_today')}:</span>
+          <span className="font-bold">{formatCurrency(summary.safeToSpendDaily)}</span>
+        </button>
 
         {/* Quick Add Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             id="quick-add-btn"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-xs sm:text-sm font-semibold shadow-xs transition-all"
+            className="min-h-[44px] flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white hover:bg-slate-800 dark:hover:bg-emerald-500 text-sm font-semibold shadow-xs transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden xs:inline">Yangi qoʻshish</span>
+            <span className="hidden xs:inline">
+              {t('btn_add')}
+            </span>
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                Yangi maʼlumot kiritish
+            <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3.5 py-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                {t('section_quick_actions')}
               </div>
-              
+
               <button
                 id="add-income-menu-item"
                 onClick={() => {
                   setDropdownOpen(false);
                   openModal('income');
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
               >
-                <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                   <TrendingUp className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">Daromad qoʻshish</div>
-                  <div className="text-[11px] text-slate-400">Maosh, biznes yoki frilans</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{t('btn_add_income')}</div>
                 </div>
               </button>
 
@@ -136,14 +146,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   setDropdownOpen(false);
                   openModal('expense');
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
               >
-                <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
                   <Receipt className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">Kundalik xarajat</div>
-                  <div className="text-[11px] text-slate-400">Oziq-ovqat, transport, kiyim</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{t('btn_add_expense')}</div>
                 </div>
               </button>
 
@@ -153,14 +162,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   setDropdownOpen(false);
                   openModal('utility');
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
               >
-                <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                   <Zap className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">Kommunal toʻlov</div>
-                  <div className="text-[11px] text-slate-400">Elektr, gaz, suv, internet</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{t('btn_add_utility')}</div>
                 </div>
               </button>
 
@@ -170,18 +178,17 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   setDropdownOpen(false);
                   openModal('mandatory');
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
               >
-                <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">Soliq va majburiy</div>
-                  <div className="text-[11px] text-slate-400">Soliqlar, sugʻurta, kredit</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{t('btn_add_mandatory')}</div>
                 </div>
               </button>
 
-              <div className="my-1 border-t border-slate-100" />
+              <div className="my-1 border-t border-slate-100 dark:border-slate-700" />
 
               <button
                 id="add-goal-menu-item"
@@ -189,30 +196,44 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
                   setDropdownOpen(false);
                   openModal('goal');
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-left text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-3 transition-colors"
               >
-                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                   <Target className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-medium text-slate-900">Moliyaviy maqsad</div>
-                  <div className="text-[11px] text-slate-400">Yangi xarid yoki jamgʻarma</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{t('btn_add_goal')}</div>
                 </div>
               </button>
             </div>
           )}
         </div>
 
-        {/* Small Settings Icon in Header */}
+        {/* Dark/Light Quick Toggle */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="min-h-[44px] min-w-[44px] p-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
+          title={resolvedTheme === 'dark' ? 'Yorug‘ rejim' : 'Qorong‘i rejim'}
+          aria-label="Koʻrinish rejimini oʻzgartirish"
+        >
+          {resolvedTheme === 'dark' ? (
+            <Sun className="w-5 h-5 text-amber-400" />
+          ) : (
+            <Moon className="w-5 h-5 text-slate-600" />
+          )}
+        </button>
+
+        {/* Settings Icon in Header */}
         <button
           onClick={() => setActiveTab('settings')}
-          className={`p-2 rounded-xl transition-colors ${
+          className={`min-h-[44px] min-w-[44px] p-2.5 rounded-xl transition-colors flex items-center justify-center ${
             activeTab === 'settings'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              ? 'bg-slate-900 dark:bg-slate-800 text-white shadow-2xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
-          title="Sozlamalar"
-          aria-label="Sozlamalar"
+          title={t('settings_title')}
+          aria-label={t('settings_title')}
         >
           <Settings className="w-5 h-5" />
         </button>

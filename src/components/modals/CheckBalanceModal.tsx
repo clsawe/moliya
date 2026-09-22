@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, Search, ShieldCheck, AlertCircle, Info } from 'lucide-react';
+import { X, Search, Info } from 'lucide-react';
 import { UtilityCategory } from '../../types';
 import { UTILITY_CATEGORY_LABELS } from '../../utils/formatters';
 import { paymentService } from '../../services/payment';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface CheckBalanceModalProps {
   isOpen: boolean;
@@ -20,120 +21,87 @@ export const CheckBalanceModal: React.FC<CheckBalanceModalProps> = ({
   const [category, setCategory] = useState<UtilityCategory>(initialCategory);
   const [accountNumber, setAccountNumber] = useState(initialAccountNumber);
   const defaultProvider = paymentService.getDefaultProvider();
+  const { t } = useLanguage();
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <Search className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 Hisob Balansini Tekshirish
               </h2>
-              <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                Provayder: <strong className="text-emerald-700 font-semibold">{defaultProvider.info.name}</strong>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                Provayder: <strong className="text-emerald-700 dark:text-emerald-400 font-semibold">{defaultProvider.info.name}</strong>
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+            className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+            aria-label={t('btn_cancel')}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Architecture Status Badge */}
-          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-            <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-900 leading-relaxed">
+          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl flex items-start gap-3">
+            <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed">
               <div className="font-bold flex items-center gap-1.5 mb-0.5">
-                <span>Integratsiya holati: Tez kunda («Coming soon»)</span>
-                <span className="px-1.5 py-0.2 rounded bg-amber-200/80 text-amber-800 text-[10px] uppercase font-bold tracking-wider">
-                  Arxitektura tayyor
-                </span>
+                <span>Integratsiya: Tez kunda</span>
               </div>
-              <p className="text-amber-800/90">
-                Paynet toʻlov shlyuzi abstraksiya qatlami toʻliq shakllantirildi. Server tomonida xavfsiz API kalitlari ulangach, elektr, gaz, suv va boshqa kommunal xizmatlarning haqiqiy qarzdorlik va balans koʻrsatkichlari toʻgʻridan-toʻgʻri yuklanadi.
+              <p className="text-[11px] mt-1">
+                Rasmiy Paynet shlyuzi ulangach, abonent raqami kiritilganda haqiqiy qarzdorlik yoki avans summasi toʻgʻridan-toʻgʻri koʻrsatiladi.
               </p>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Kommunal xizmat turi
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Xizmat turi
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as UtilityCategory)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none"
             >
-              {Object.entries(UTILITY_CATEGORY_LABELS).map(([catKey, { label }]) => (
-                <option key={catKey} value={catKey}>
-                  {label}
+              {Object.entries(UTILITY_CATEGORY_LABELS).map(([k, meta]) => (
+                <option key={k} value={k}>
+                  {meta.label}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Abonent / Shaxsiy hisob raqami
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Shaxsiy hisob raqami (LS)
             </label>
             <input
               type="text"
-              placeholder="Masalan: 10023485"
+              placeholder="Masalan: 12345678"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none"
             />
-            <p className="mt-1 text-[11px] text-slate-400">
-              Kvitansiya yoki hisoblagich shartnomasidagi hisob raqamini kiriting
-            </p>
           </div>
 
-          {/* Security & Authenticity Notice */}
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>Maʼlumotlar xavfsizligi va haqqoniyligi</span>
-            </div>
-            <p className="text-[11px] text-slate-600 leading-normal">
-              Tizim hech qachon soxta (mock) balans yoki uydirma qarzdorlik maʼlumotlarini koʻrsatmaydi. Hozirda joriy oylik koʻrsatkichlarni «Kommunal qoʻshish» orqali qoʻlda aniq kiritishingiz mumkin.
-            </p>
-          </div>
-
-          {/* Action buttons */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-              <span>Server ulanishi kutilmoqda</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                Yopish
-              </button>
-              <button
-                type="button"
-                disabled={true}
-                title="Paynet integratsiyasi tez kunda ishga tushadi"
-                className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600/60 cursor-not-allowed rounded-xl flex items-center gap-2 opacity-70"
-              >
-                <Search className="w-3.5 h-3.5" />
-                <span>Balansni tekshirish (Tez kunda)</span>
-              </button>
-            </div>
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            >
+              {t('btn_close')}
+            </button>
           </div>
         </div>
       </div>

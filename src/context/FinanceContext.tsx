@@ -17,6 +17,8 @@ import {
   FamilyMember,
   FamilyFinanceSummary,
   MemberFinanceSummary,
+  Account,
+  Transfer,
 } from '../types';
 import {
   INITIAL_MONTH,
@@ -28,12 +30,26 @@ import {
   INITIAL_TAX_PROFILE,
   INITIAL_FAMILY,
   INITIAL_FAMILY_MEMBERS,
+  INITIAL_ACCOUNTS,
+  INITIAL_TRANSFERS,
+  DEMO_FAMILY,
+  DEMO_FAMILY_MEMBERS,
+  DEMO_ACCOUNTS,
+  DEMO_INCOMES,
+  DEMO_EXPENSES,
+  DEMO_TRANSFERS,
+  DEMO_UTILITIES,
+  DEMO_MANDATORY,
+  DEMO_GOALS,
+  DEMO_TAX_PROFILE,
 } from '../data/initialData';
 import {
   calculateMonthlySummary,
   analyzeGoalPlan,
   calculateFamilySummary,
   calculateFamilyBalance,
+  calculateAccountBalance as calcAccBal,
+  calculateTotalAssets as calcTotAssets,
 } from '../engine/financeCalculations';
 import { calculateEstimatedTax, calculateDeadlineStatus } from '../config/taxRatesConfig';
 import { generateUpcomingReminders } from '../services/reminder/ReminderService';
@@ -54,6 +70,8 @@ interface FinanceContextType {
   mandatoryPayments: MandatoryPayment[];
   goals: FinancialGoal[];
   paymentTransactions: PaymentTransaction[];
+  accounts: Account[];
+  transfers: Transfer[];
 
   // Tax Profile & Automation
   taxProfile: TaxProfile;
@@ -111,8 +129,19 @@ interface FinanceContextType {
   // Payment transactions
   recordPaymentTransaction: (transaction: PaymentTransaction) => void;
 
+  // Accounts & Transfers
+  addAccount: (account: Omit<Account, 'id' | 'createdAt'>) => Account;
+  updateAccount: (id: string, updates: Partial<Account>) => void;
+  deleteAccount: (id: string) => void;
+  addTransfer: (transfer: Omit<Transfer, 'id' | 'createdAt'>) => Transfer;
+  deleteTransfer: (id: string) => void;
+  calculateAccountBalance: (accountId: string) => number;
+  calculateTotalAssets: () => number;
+
   // Utility Actions
   resetToDemoData: () => void;
+  loadDemoData: () => void;
+  clearAllData: () => void;
   exportDataJSON: () => string;
   importDataJSON: (jsonStr: string) => boolean;
 
@@ -134,6 +163,8 @@ const STORAGE_KEYS = {
   EXPENSES_SUBTAB: 'moliya_expenses_subtab_v1',
   FAMILY: 'moliya_family_v1',
   FAMILY_MEMBERS: 'moliya_family_members_v1',
+  ACCOUNTS: 'moliya_accounts_v1',
+  TRANSFERS: 'moliya_transfers_v1',
   SCHEMA_VERSION: 'moliya_schema_version',
 };
 
@@ -170,41 +201,88 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   });
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.INCOMES);
-    return saved ? JSON.parse(saved) : INITIAL_INCOMES;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.INCOMES);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_INCOMES;
   });
 
   const [expenses, setExpenses] = useState<Expense[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.EXPENSES);
-    return saved ? JSON.parse(saved) : INITIAL_EXPENSES;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.EXPENSES);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_EXPENSES;
   });
 
   const [utilities, setUtilities] = useState<UtilityBill[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.UTILITIES);
-    return saved ? JSON.parse(saved) : INITIAL_UTILITIES;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.UTILITIES);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_UTILITIES;
   });
 
   const [mandatoryPayments, setMandatoryPayments] = useState<MandatoryPayment[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.MANDATORY);
-    return saved ? JSON.parse(saved) : INITIAL_MANDATORY;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.MANDATORY);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_MANDATORY;
   });
 
   const [goals, setGoals] = useState<FinancialGoal[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.GOALS);
-    return saved ? JSON.parse(saved) : INITIAL_GOALS;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.GOALS);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_GOALS;
   });
 
   const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
   });
 
   const [taxProfile, setTaxProfile] = useState<TaxProfile>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.TAX_PROFILE);
-    return saved ? JSON.parse(saved) : INITIAL_TAX_PROFILE;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.TAX_PROFILE);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_TAX_PROFILE;
   });
 
-  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState<string | null>('goal-1');
+  const [accounts, setAccounts] = useState<Account[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ACCOUNTS);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_ACCOUNTS;
+  });
+
+  const [transfers, setTransfers] = useState<Transfer[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.TRANSFERS);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_TRANSFERS;
+  });
+
+  const [selectedPlannerGoalId, setSelectedPlannerGoalId] = useState<string | null>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.GOALS);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed[0].id;
+      } catch {}
+    }
+    return INITIAL_GOALS.length > 0 ? INITIAL_GOALS[0].id : null;
+  });
+
   const [activeModal, setActiveModal] = useState<'income' | 'expense' | 'utility' | 'mandatory' | 'goal' | null>(null);
 
   // Sync to localStorage
@@ -235,6 +313,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
   }, [goals]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts));
+  }, [accounts]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.TRANSFERS, JSON.stringify(transfers));
+  }, [transfers]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(paymentTransactions));
@@ -515,7 +601,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         activeGoal.id
       );
     }
-    return analyzeGoalPlan(1000000, 'Telefon xarid qilish', currentMonth, summary);
+    return analyzeGoalPlan(0, '', currentMonth, summary);
   }, [goals, selectedPlannerGoalId, currentMonth, summary]);
 
   const planCustomGoal = (amount: number, name: string, month = currentMonth) => {
@@ -716,31 +802,87 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  // Reset to Demo
-  const resetToDemoData = () => {
-    setIncomes(INITIAL_INCOMES);
-    setExpenses(INITIAL_EXPENSES);
-    setUtilities(INITIAL_UTILITIES);
-    setMandatoryPayments(INITIAL_MANDATORY);
-    setGoals(INITIAL_GOALS);
-    setFamily(INITIAL_FAMILY);
-    setFamilyMembers(INITIAL_FAMILY_MEMBERS);
+  // Accounts CRUD
+  const addAccount = (acc: Omit<Account, 'id' | 'createdAt'>): Account => {
+    const newAcc: Account = {
+      ...acc,
+      id: `acc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      createdAt: new Date().toISOString(),
+      openingBalance: Math.round(Number(acc.openingBalance) || 0),
+    };
+    setAccounts((prev) => [...prev, newAcc]);
+    return newAcc;
+  };
+
+  const updateAccount = (id: string, updates: Partial<Account>) => {
+    setAccounts((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, ...updates, openingBalance: updates.openingBalance !== undefined ? Math.round(Number(updates.openingBalance) || 0) : a.openingBalance } : a))
+    );
+  };
+
+  const deleteAccount = (id: string) => {
+    setAccounts((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  // Transfers CRUD
+  const addTransfer = (tr: Omit<Transfer, 'id' | 'createdAt'>): Transfer => {
+    const newTr: Transfer = {
+      ...tr,
+      id: `tr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      createdAt: new Date().toISOString(),
+      amount: Math.round(Number(tr.amount) || 0),
+    };
+    setTransfers((prev) => [newTr, ...prev]);
+    return newTr;
+  };
+
+  const deleteTransfer = (id: string) => {
+    setTransfers((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const calculateAccountBalance = (accountId: string): number => {
+    const acc = accounts.find((a) => a.id === accountId);
+    if (!acc) return 0;
+    return calcAccBal(acc, incomes, expenses, transfers);
+  };
+
+  const calculateTotalAssets = (): number => {
+    return calcTotAssets(accounts, incomes, expenses, transfers);
+  };
+
+  // Demo & Reset
+  const loadDemoData = () => {
+    setFamily(DEMO_FAMILY);
+    setFamilyMembers(DEMO_FAMILY_MEMBERS);
+    setIncomes(DEMO_INCOMES);
+    setExpenses(DEMO_EXPENSES);
+    setUtilities(DEMO_UTILITIES);
+    setMandatoryPayments(DEMO_MANDATORY);
+    setGoals(DEMO_GOALS);
+    setAccounts(DEMO_ACCOUNTS);
+    setTransfers(DEMO_TRANSFERS);
+    setTaxProfile(DEMO_TAX_PROFILE);
     setPaymentTransactions([]);
-    setTaxProfile(INITIAL_TAX_PROFILE);
-    setExpensesSubTab('everyday');
+    setSelectedPlannerGoalId(DEMO_GOALS[0]?.id || null);
     setCurrentMonthState(INITIAL_MONTH);
-    setSelectedPlannerGoalId('goal-1');
-    localStorage.removeItem(STORAGE_KEYS.INCOMES);
-    localStorage.removeItem(STORAGE_KEYS.EXPENSES);
-    localStorage.removeItem(STORAGE_KEYS.UTILITIES);
-    localStorage.removeItem(STORAGE_KEYS.MANDATORY);
-    localStorage.removeItem(STORAGE_KEYS.GOALS);
-    localStorage.removeItem(STORAGE_KEYS.FAMILY);
-    localStorage.removeItem(STORAGE_KEYS.FAMILY_MEMBERS);
-    localStorage.removeItem(STORAGE_KEYS.CURRENT_MONTH);
-    localStorage.removeItem(STORAGE_KEYS.TRANSACTIONS);
-    localStorage.removeItem(STORAGE_KEYS.TAX_PROFILE);
-    localStorage.removeItem(STORAGE_KEYS.EXPENSES_SUBTAB);
+  };
+
+  const clearAllData = () => {
+    setFamily(INITIAL_FAMILY);
+    setFamilyMembers([]);
+    setIncomes([]);
+    setExpenses([]);
+    setUtilities([]);
+    setMandatoryPayments([]);
+    setGoals([]);
+    setAccounts([]);
+    setTransfers([]);
+    setPaymentTransactions([]);
+    setSelectedPlannerGoalId(null);
+  };
+
+  const resetToDemoData = () => {
+    loadDemoData();
   };
 
   const exportDataJSON = () => {
@@ -748,6 +890,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       currentMonth,
       family,
       familyMembers,
+      accounts,
+      transfers,
       incomes,
       expenses,
       utilities,
@@ -765,6 +909,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       const parsed = JSON.parse(jsonStr);
       if (parsed.family) setFamily(parsed.family);
       if (parsed.familyMembers && Array.isArray(parsed.familyMembers)) setFamilyMembers(parsed.familyMembers);
+      if (parsed.accounts && Array.isArray(parsed.accounts)) setAccounts(parsed.accounts);
+      if (parsed.transfers && Array.isArray(parsed.transfers)) setTransfers(parsed.transfers);
       if (parsed.incomes && Array.isArray(parsed.incomes)) setIncomes(parsed.incomes);
       if (parsed.expenses && Array.isArray(parsed.expenses)) setExpenses(parsed.expenses);
       if (parsed.utilities && Array.isArray(parsed.utilities)) setUtilities(parsed.utilities);
@@ -803,6 +949,15 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         mandatoryPayments,
         goals,
         paymentTransactions,
+        accounts,
+        transfers,
+        addAccount,
+        updateAccount,
+        deleteAccount,
+        addTransfer,
+        deleteTransfer,
+        calculateAccountBalance,
+        calculateTotalAssets,
         taxProfile,
         updateTaxProfile,
         estimatedTax,
@@ -842,6 +997,8 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         contributeToGoal,
         recordPaymentTransaction,
         resetToDemoData,
+        loadDemoData,
+        clearAllData,
         exportDataJSON,
         importDataJSON,
         activeModal,

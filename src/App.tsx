@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { App as CapApp } from '@capacitor/app';
+import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './i18n/LanguageContext';
 import { FinanceProvider, useFinance } from './context/FinanceContext';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -6,6 +9,7 @@ import { DashboardView } from './components/views/DashboardView';
 import { IncomeView } from './components/views/IncomeView';
 import { ExpensesView } from './components/views/ExpensesView';
 import { GoalsView } from './components/views/GoalsView';
+import { ReportsView } from './components/views/ReportsView';
 import { SettingsView } from './components/views/SettingsView';
 
 // Modals
@@ -16,21 +20,61 @@ import { AddMandatoryModal } from './components/modals/AddMandatoryModal';
 import { AddGoalModal } from './components/modals/AddGoalModal';
 
 const AppContent: React.FC = () => {
-  const { activeTab } = useFinance();
+  const { activeTab, setActiveTab, activeModal, closeModal } = useFinance();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Android hardware back button and keyboard ESC handling
+  useEffect(() => {
+    let removeCapListener: (() => void) | undefined;
+    try {
+      const listenerPromise = CapApp.addListener('backButton', () => {
+        if (activeModal) {
+          closeModal();
+          return;
+        }
+        if (mobileMenuOpen) {
+          setMobileMenuOpen(false);
+          return;
+        }
+        if (activeTab !== 'dashboard') {
+          setActiveTab('dashboard');
+          return;
+        }
+      });
+      listenerPromise.then((handle) => {
+        removeCapListener = () => handle.remove();
+      }).catch(() => {});
+    } catch {
+      // Standard browser runtime
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activeModal) closeModal();
+        else if (mobileMenuOpen) setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      if (removeCapListener) removeCapListener();
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeModal, closeModal, mobileMenuOpen, activeTab, setActiveTab]);
+
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-900 font-sans antialiased selection:bg-emerald-500 selection:text-white">
-      {/* Sidebar Navigation - 4 items only */}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-150">
+      {/* Sidebar Navigation */}
       <Sidebar mobileOpen={mobileMenuOpen} setMobileOpen={setMobileMenuOpen} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 lg:p-7 overflow-y-auto">
           {/* Primary View Routing */}
-          {(activeTab === 'dashboard' || activeTab === 'reports') && <DashboardView />}
+          {activeTab === 'dashboard' && <DashboardView />}
+          {activeTab === 'reports' && <ReportsView />}
           {activeTab === 'income' && <IncomeView />}
           {activeTab === 'expenses' && <ExpensesView />}
           {activeTab === 'utilities' && <ExpensesView initialTab="utilities" />}
@@ -53,8 +97,12 @@ const AppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <FinanceProvider>
-      <AppContent />
-    </FinanceProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <FinanceProvider>
+          <AppContent />
+        </FinanceProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

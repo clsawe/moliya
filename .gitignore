@@ -1,8 +1,38 @@
+# Dependencies
 node_modules/
-build/
+
+# Production & Build outputs
 dist/
+build/
 coverage/
-.DS_Store
-*.log
+
+# Environment and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env*
 !.env.example
+*.pem
+*.key
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Editor & OS files
+.DS_Store
+.idea/
+.vscode/
+*.sw?
+
+# Android build artifacts (preserves android source code & configuration)
+android/app/build/
+android/.gradle/
+android/local.properties
+android/captures/
+android/.idea/
+android/*.iml
+android/app/*.iml

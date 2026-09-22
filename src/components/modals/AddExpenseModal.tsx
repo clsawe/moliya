@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { X, Receipt } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { ExpenseCategory } from '../../types';
-import { EXPENSE_CATEGORY_LABELS, formatUZS } from '../../utils/formatters';
+import { EXPENSE_CATEGORY_LABELS } from '../../utils/formatters';
 
 export const AddExpenseModal: React.FC = () => {
   const { activeModal, closeModal, addExpense, currentMonth, activeFamilyMembers } = useFinance();
+  const { t, formatCurrency } = useLanguage();
 
   const [description, setDescription] = useState('');
   const [amountStr, setAmountStr] = useState('');
@@ -45,18 +47,19 @@ export const AddExpenseModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>
-            <h2 className="text-base font-bold text-slate-900">Kundalik xarajat qoʻshish</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{t('btn_add_expense')}</h2>
           </div>
           <button
             onClick={closeModal}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+            className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+            aria-label={t('btn_cancel')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -64,22 +67,22 @@ export const AddExpenseModal: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Xarajat tavsifi <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="Masalan: Bozorlik mahsulotlari, Yoqilgʻi quyish, Dori-darmon"
+              placeholder="Masalan: Bozorlik, Dorixona, Benzin, Goʻsht"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Summa (soʻmda) <span className="text-rose-500">*</span>
               </label>
               <input
@@ -91,106 +94,101 @@ export const AddExpenseModal: React.FC = () => {
                   const val = e.target.value.replace(/[^\d]/g, '');
                   setAmountStr(val ? parseInt(val, 10).toLocaleString('ru-RU') : '');
                 }}
-                className="w-full px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
               />
               {rawAmount > 0 && (
-                <p className="mt-1 text-[11px] text-rose-700 font-medium">
-                  {formatUZS(rawAmount)}
+                <p className="mt-1 text-[11px] text-rose-600 dark:text-rose-400 font-medium">
+                  {formatCurrency(rawAmount)}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Sana <span className="text-rose-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Kategoriya
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+              >
+                {Object.entries(EXPENSE_CATEGORY_LABELS).map(([key, meta]) => (
+                  <option key={key} value={key}>
+                    {meta.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Sana
               </label>
               <input
                 type="date"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t('family_title')}
+              </label>
+              <select
+                value={selectedMemberId}
+                onChange={(e) => setSelectedMemberId(e.target.value)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 font-medium"
+              >
+                <option value="">👥 Umumiy oilaviy xarajat</option>
+                {activeFamilyMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.avatarEmoji || '👤'} {m.name} ({m.role})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Oila aʼzosi <span className="text-rose-600 font-normal">(Kim sarfladi?)</span>
-            </label>
-            <select
-              value={selectedMemberId}
-              onChange={(e) => setSelectedMemberId(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 bg-white"
-            >
-              <option value="">Oila (Umumiy oilaviy xarajat)</option>
-              {activeFamilyMembers.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} ({member.role === 'Owner' ? 'Boshliq' : member.role === 'Adult' ? 'Katta' : 'Farzand'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Xarajat toifasi
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 bg-white"
-            >
-              {Object.entries(EXPENSE_CATEGORY_LABELS).map(([catKey, { label }]) => (
-                <option key={catKey} value={catKey}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <label className="relative flex items-center gap-2.5 cursor-pointer select-none p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
+          <div className="pt-2 space-y-2">
+            <label className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={isEssential}
                 onChange={(e) => setIsEssential(e.target.checked)}
-                className="w-4 h-4 rounded text-slate-900 focus:ring-slate-800 border-slate-300"
+                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
               />
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block">Zaruriy ehtiyoj</span>
-                <span className="text-[11px] text-slate-400 block">Tejash qiyin boʻlgan sarf</span>
-              </div>
+              <span>Zaruriy xarajat (oziq-ovqat, dori, transport kabi kechiktirib boʻlmaydigan xarajat)</span>
             </label>
 
-            <label className="relative flex items-center gap-2.5 cursor-pointer select-none p-2 rounded-lg border border-slate-200 hover:bg-slate-50">
+            <label className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={isRecurring}
                 onChange={(e) => setIsRecurring(e.target.checked)}
-                className="w-4 h-4 rounded text-slate-900 focus:ring-slate-800 border-slate-300"
+                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500"
               />
-              <div>
-                <span className="text-xs font-semibold text-slate-800 block">Doimiy xarajat</span>
-                <span className="text-[11px] text-slate-400 block">Har oy takrorlanadi</span>
-              </div>
+              <span>Har oy takrorlanuvchi muntazam xarajat</span>
             </label>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+              className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
             >
-              Bekor qilish
+              {t('btn_cancel')}
             </button>
             <button
               type="submit"
-              disabled={rawAmount <= 0 || !description.trim()}
-              className="px-5 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs transition-colors"
+              className="min-h-[44px] px-5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer"
             >
-              Saqlash
+              {t('btn_save')}
             </button>
           </div>
         </form>

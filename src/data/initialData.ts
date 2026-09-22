@@ -7,12 +7,56 @@ import {
   TaxProfile,
   Family,
   FamilyMember,
+  Account,
+  Transfer,
 } from '../types';
 
 export const INITIAL_MONTH = '2026-09';
 export const PREVIOUS_MONTH = '2026-08';
 
+/**
+ * Clean Initial State for New Users
+ * Empty family members, empty transactions, empty goals, empty accounts.
+ */
 export const INITIAL_FAMILY: Family = {
+  id: 'fam-default',
+  name: 'Mening oilam',
+  currency: 'UZS',
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
+export const INITIAL_FAMILY_MEMBERS: FamilyMember[] = [];
+export const INITIAL_INCOMES: Income[] = [];
+export const INITIAL_EXPENSES: Expense[] = [];
+export const INITIAL_UTILITIES: UtilityBill[] = [];
+export const INITIAL_MANDATORY: MandatoryPayment[] = [];
+export const INITIAL_GOALS: FinancialGoal[] = [];
+export const INITIAL_ACCOUNTS: Account[] = [];
+export const INITIAL_TRANSFERS: Transfer[] = [];
+
+export const INITIAL_TAX_PROFILE: TaxProfile = {
+  id: 'tax-prof-default',
+  taxType: 'income_tax',
+  profileType: 'individual',
+  incomeSource: 'salary',
+  calculationMethod: 'percentage',
+  customRatePercent: 12,
+  fixedMonthlyAmount: 0,
+  paymentPeriod: 'monthly',
+  dueDayOfMonth: 15,
+  allocatedReserveAmount: 0,
+  autoReserveFromIncome: false,
+  remindersEnabled: true,
+  reminderDaysBefore: [7, 3, 1, 0],
+  notes: 'Standart jismoniy shaxs profili',
+};
+
+/**
+ * Optional Demo Data for Testing
+ * Loaded only when user explicitly clicks "Sinov uchun demo ma'lumotlarni yuklash" in Settings
+ */
+export const DEMO_FAMILY: Family = {
   id: 'fam-default',
   name: 'Bizning oila',
   currency: 'UZS',
@@ -20,11 +64,11 @@ export const INITIAL_FAMILY: Family = {
   updatedAt: '2026-09-01T00:00:00.000Z',
 };
 
-export const INITIAL_FAMILY_MEMBERS: FamilyMember[] = [
+export const DEMO_FAMILY_MEMBERS: FamilyMember[] = [
   {
     id: 'mem-1',
     familyId: 'fam-default',
-    name: 'Anvar (Ota)',
+    name: 'Ota',
     role: 'Owner',
     active: true,
     createdAt: '2026-09-01T00:00:00.000Z',
@@ -32,118 +76,81 @@ export const INITIAL_FAMILY_MEMBERS: FamilyMember[] = [
   {
     id: 'mem-2',
     familyId: 'fam-default',
-    name: 'Dilnoza (Ona)',
+    name: 'Ona',
     role: 'Adult',
-    active: true,
-    createdAt: '2026-09-01T00:00:00.000Z',
-  },
-  {
-    id: 'mem-3',
-    familyId: 'fam-default',
-    name: 'Jasur (Farzand)',
-    role: 'Child',
     active: true,
     createdAt: '2026-09-01T00:00:00.000Z',
   },
 ];
 
-export const INITIAL_INCOMES: Income[] = [
+export const DEMO_ACCOUNTS: Account[] = [
+  {
+    id: 'acc-1',
+    name: 'UZCARD',
+    type: 'card',
+    openingBalance: 2000000,
+    currency: 'UZS',
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+  {
+    id: 'acc-2',
+    name: 'HUMO',
+    type: 'card',
+    openingBalance: 500000,
+    currency: 'UZS',
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+];
+
+export const DEMO_INCOMES: Income[] = [
   {
     id: 'inc-1',
-    name: 'Asosiy oylik maosh',
-    amount: 4200000,
+    name: 'Oylik maosh',
+    amount: 5000000,
     date: '2026-09-05',
     isRecurring: true,
     category: 'salary',
     notes: 'Kompaniya tomonidan plastik kartaga oʻtkazilgan',
     memberId: 'mem-1',
-  },
-  {
-    id: 'inc-2',
-    name: 'Frilans veb-loyiha',
-    amount: 800000,
-    date: '2026-09-12',
-    isRecurring: false,
-    category: 'freelance',
-    notes: 'Mijoz uchun sayt dizayni va sozlash',
-    memberId: 'mem-1',
+    accountId: 'acc-1',
   },
 ];
 
-export const INITIAL_EXPENSES: Expense[] = [
+export const DEMO_EXPENSES: Expense[] = [
   {
     id: 'exp-1',
     category: 'food',
-    amount: 1500000,
+    amount: 150000,
     date: '2026-09-03',
-    description: 'Bozorlik va oziq-ovqat mahsulotlari (Korzinka & Bozor)',
-    isRecurring: true,
-    isEssential: true,
-    memberId: 'mem-2',
-  },
-  {
-    id: 'exp-2',
-    category: 'transport',
-    amount: 500000,
-    date: '2026-09-07',
-    description: 'Metropoliten kartasi va avtomobil yoqilgʻisi',
-    isRecurring: true,
-    isEssential: true,
-    memberId: 'mem-1',
-  },
-  {
-    id: 'exp-3',
-    category: 'household',
-    amount: 300000,
-    date: '2026-09-10',
-    description: 'Uy-roʻzgʻor gigiyena va tozalash vositalari',
-    isRecurring: true,
-    isEssential: true,
-    memberId: null,
-  },
-  {
-    id: 'exp-4',
-    category: 'health',
-    amount: 200000,
-    date: '2026-09-14',
-    description: 'Dorixona va mavsumiy vitaminlar',
+    description: 'Oziq-ovqat xaridi',
     isRecurring: false,
     isEssential: true,
     memberId: 'mem-2',
-  },
-  {
-    id: 'exp-5',
-    category: 'communication',
-    amount: 100000,
-    date: '2026-09-02',
-    description: 'Mobil aloqa oylik tarifi (Beeline/Ucell)',
-    isRecurring: true,
-    isEssential: true,
-    memberId: 'mem-1',
-  },
-  {
-    id: 'exp-6',
-    category: 'entertainment',
-    amount: 200000,
-    date: '2026-09-15',
-    description: 'Oilaviy kinoteatr va dam olish kuni kafesi',
-    isRecurring: false,
-    isEssential: false,
-    memberId: null,
+    accountId: 'acc-1',
   },
 ];
 
-export const INITIAL_UTILITIES: UtilityBill[] = [
-  // Current Month (2026-09) - Total: 400,000 UZS
+export const DEMO_TRANSFERS: Transfer[] = [
+  {
+    id: 'tr-1',
+    fromAccountId: 'acc-1',
+    toAccountId: 'acc-2',
+    amount: 300000,
+    date: '2026-09-10',
+    notes: 'UZCARD dan HUMO ga oʻtkazma',
+    createdAt: '2026-09-10T10:00:00.000Z',
+  },
+];
+
+export const DEMO_UTILITIES: UtilityBill[] = [
   {
     id: 'ut-1',
     category: 'electricity',
     amount: 120000,
     month: '2026-09',
     dueDate: '2026-09-25',
-    isPaid: false, // Unpaid to demonstrate upcoming electrical bill in dashboard
-    description: 'Elektr energiyasi (HETK hisobi: 240 kVt)',
-    meterReading: 240,
+    isPaid: false,
+    description: 'Elektr energiyasi toʻlovi',
     accountNumber: '200456789',
   },
   {
@@ -154,117 +161,44 @@ export const INITIAL_UTILITIES: UtilityBill[] = [
     dueDate: '2026-09-25',
     isPaid: true,
     paidDate: '2026-09-10',
-    description: 'Oshxona tabiiy gaz sarfi',
-    meterReading: 120,
+    description: 'Tabiiy gaz toʻlovi',
     accountNumber: '100889922',
-  },
-  {
-    id: 'ut-3',
-    category: 'water',
-    amount: 60000,
-    month: '2026-09',
-    dueDate: '2026-09-28',
-    isPaid: false,
-    description: 'Toshkent Suv Taʼminoti hisobi',
-    meterReading: 18,
-    accountNumber: '300774411',
-  },
-  {
-    id: 'ut-4',
-    category: 'internet',
-    amount: 130000,
-    month: '2026-09',
-    dueDate: '2026-09-30',
-    isPaid: true,
-    paidDate: '2026-09-01',
-    description: 'Optik tolali internet (Sarkor / Uztelecom 100 Mb/s)',
-    accountNumber: '998901234567',
-  },
-
-  // Previous Month (2026-08) for difference comparison - Total: 470,000 UZS
-  {
-    id: 'ut-prev-1',
-    category: 'electricity',
-    amount: 210000,
-    month: '2026-08',
-    dueDate: '2026-08-25',
-    isPaid: true,
-    paidDate: '2026-08-10',
-    description: 'Avgust oyi elektr',
-  },
-  {
-    id: 'ut-prev-2',
-    category: 'gas',
-    amount: 80000,
-    month: '2026-08',
-    dueDate: '2026-08-25',
-    isPaid: true,
-    paidDate: '2026-08-10',
-    description: 'Avgust oyi gaz',
-  },
-  {
-    id: 'ut-prev-3',
-    category: 'water',
-    amount: 55000,
-    month: '2026-08',
-    dueDate: '2026-08-28',
-    isPaid: true,
-    paidDate: '2026-08-15',
-    description: 'Avgust oyi suv',
-  },
-  {
-    id: 'ut-prev-4',
-    category: 'internet',
-    amount: 125000,
-    month: '2026-08',
-    dueDate: '2026-08-30',
-    isPaid: true,
-    paidDate: '2026-08-01',
-    description: 'Avgust oyi internet',
   },
 ];
 
-export const INITIAL_MANDATORY: MandatoryPayment[] = [
+export const DEMO_MANDATORY: MandatoryPayment[] = [
   {
     id: 'man-tax-1',
-    name: 'JShODS / Daromad solig‘i',
+    name: 'Daromad soligʻi',
     category: 'tax',
     amount: 450000,
     month: '2026-09',
     dueDate: '2026-09-30',
-    isPaid: false, // Unpaid to demonstrate upcoming 450,000 UZS tax due by 30-September
+    isPaid: false,
     taxType: 'income_tax',
     isOfficial: false,
     isEstimated: true,
-    notes: 'Frilans va qo‘shimcha daromaddan hisoblangan oylik taxminiy soliq',
-  },
-  {
-    id: 'man-tax-2',
-    name: 'Ijtimoiy soliq toʻlovi (O‘tgan davr)',
-    category: 'tax',
-    amount: 150000,
-    month: '2026-09',
-    dueDate: '2026-09-15',
-    isPaid: true,
-    paidDate: '2026-09-05',
-    taxType: 'social_tax',
-    isOfficial: false,
-    notes: 'Avvalgi oy hisobi uchun to‘langan ijtimoiy to‘lov',
-  },
-  {
-    id: 'man-ins-1',
-    name: 'Avtotransport majburiy fuqarolik javobgarligi sugʻurtasi',
-    category: 'insurance',
-    amount: 50000,
-    month: '2026-09',
-    dueDate: '2026-09-26',
-    isPaid: false,
-    notes: 'Yillik sugʻurtaning oylik hisob-kitob taqsimoti',
+    notes: 'Oylik taxminiy soliq',
   },
 ];
 
-export const INITIAL_TAX_PROFILE: TaxProfile = {
-  id: 'tax-prof-default',
+export const DEMO_GOALS: FinancialGoal[] = [
+  {
+    id: 'goal-1',
+    name: 'Yangi maqsad',
+    targetAmount: 6000000,
+    currentSavedAmount: 1000000,
+    deadline: '2027-03-31',
+    targetMonth: '2027-03',
+    priority: 'high',
+    status: 'on_track',
+    category: 'Jamgʻarma',
+    notes: '6 oylik jamgʻarma rejasi',
+  },
+];
+
+export const DEMO_TAX_PROFILE: TaxProfile = {
+  id: 'tax-prof-demo',
   taxType: 'income_tax',
   profileType: 'individual',
   incomeSource: 'salary',
@@ -277,35 +211,5 @@ export const INITIAL_TAX_PROFILE: TaxProfile = {
   autoReserveFromIncome: true,
   remindersEnabled: true,
   reminderDaysBefore: [7, 3, 1, 0],
-  tinOrPinfl: '31204956780012',
-  notes: 'Jismoniy shaxs 12% daromad solig‘i profili',
+  notes: 'Jismoniy shaxs 12% profili',
 };
-
-export const INITIAL_GOALS: FinancialGoal[] = [
-  {
-    id: 'goal-1',
-    name: 'Telefon sotib olish (Yangi smartfon)',
-    targetAmount: 1000000,
-    currentSavedAmount: 0,
-    deadline: '2026-09-30',
-    targetMonth: '2026-09',
-    priority: 'high',
-    status: 'on_track',
-    category: 'Texnika va aloqa',
-    notes: 'Bu oy 1 000 000 soʻmga telefon xarid qilish rejalashtirilgan',
-    memberId: 'mem-3',
-  },
-  {
-    id: 'goal-2',
-    name: 'Qishki oilaviy dam olish zaxirasi',
-    targetAmount: 4000000,
-    currentSavedAmount: 1200000,
-    deadline: '2026-12-31',
-    targetMonth: '2026-12',
-    priority: 'medium',
-    status: 'on_track',
-    category: 'Sayohat va dam olish',
-    notes: 'Zomin yoki Amirsoy togʻ kurortiga qishki sayohat',
-    memberId: null,
-  },
-];

@@ -12,28 +12,16 @@ import {
   CheckCircle2,
   Clock,
   Plus,
-  BarChart3,
-  PieChart,
-  Coins,
-  Shield,
   Users,
   User,
   Home,
   ArrowUpRight,
   ArrowDownRight,
-  Filter,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
-import { formatUZS, formatMonthName, GOAL_STATUS_LABELS } from '../../utils/formatters';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { ContributeGoalModal } from '../modals/ContributeGoalModal';
 import { FinancialGoal } from '../../types';
-
-const ROLE_LABELS: Record<string, string> = {
-  head: 'Oila boshligʻi',
-  adult: 'Katta aʼzo',
-  child: 'Farzand',
-  other: 'Boshqa aʼzo',
-};
 
 export const DashboardView: React.FC = () => {
   const {
@@ -47,7 +35,6 @@ export const DashboardView: React.FC = () => {
     setActiveTab,
     setExpensesSubTab,
     upcomingPayments,
-    setSelectedPlannerGoalId,
     openModal,
     contributeToGoal,
     family,
@@ -55,6 +42,8 @@ export const DashboardView: React.FC = () => {
     familySummary,
     activeFamilyMembers,
   } = useFinance();
+
+  const { t, formatCurrency, formatMonth } = useLanguage();
 
   const [contributeGoal, setContributeGoal] = useState<FinancialGoal | null>(null);
   const [selectedMemberFilter, setSelectedMemberFilter] = useState<string>('all');
@@ -132,27 +121,29 @@ export const DashboardView: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-8">
       {/* 0. HOUSEHOLD FAMILY CONTROL & MEMBER FILTER BAR */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-colors">
         <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-xs shrink-0">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-xs shrink-0">
             <Home className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                {family.name}
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white">
+                {family.name || t('family_title')}
               </h2>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200/70">
-                {activeFamilyMembers.length} aʼzo faol
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
-                Oila balansi: {formatUZS(familySummary.familyBalance)}
+              {activeFamilyMembers.length > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold border border-emerald-200/70 dark:border-emerald-800/70">
+                  {activeFamilyMembers.length} {t('family_members_count')}
+                </span>
+              )}
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+                {t('family_balance')}: {formatCurrency(familySummary.familyBalance)}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Oilaviy moliya va shaxsiy hisob-kitoblarning integratsiyalashgan boshqaruvi
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {t('app_subtitle')}
             </p>
           </div>
         </div>
@@ -161,14 +152,14 @@ export const DashboardView: React.FC = () => {
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setSelectedMemberFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
               selectedMemberFilter === 'all'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Barcha oila</span>
+            <span>{t('family_all')}</span>
           </button>
 
           {familyMembers.map((m) => {
@@ -178,10 +169,10 @@ export const DashboardView: React.FC = () => {
               <button
                 key={m.id}
                 onClick={() => setSelectedMemberFilter(m.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   isSel
                     ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
                 <span
@@ -190,8 +181,8 @@ export const DashboardView: React.FC = () => {
                 />
                 <span>{m.name}</span>
                 {b && (
-                  <span className={`text-[10px] opacity-90 ${isSel ? 'text-white' : 'text-slate-500'}`}>
-                    ({formatUZS(b.income, false)})
+                  <span className={`text-[10px] opacity-90 ${isSel ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                    ({formatCurrency(b.income)})
                   </span>
                 )}
               </button>
@@ -202,24 +193,24 @@ export const DashboardView: React.FC = () => {
 
       {/* Selected Member Active Notification Banner if filtered */}
       {selectedMember && (
-        <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-2xl px-5 py-3 flex items-center justify-between gap-3 text-xs text-emerald-900">
+        <div className="bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/80 rounded-2xl px-5 py-3 flex items-center justify-between gap-3 text-xs text-emerald-900 dark:text-emerald-200">
           <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-emerald-600 shrink-0" />
+            <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
-              Hozir <strong>{selectedMember.name}</strong> ({ROLE_LABELS[selectedMember.role] || selectedMember.role}) koʻrsatkichlari filtrlandi.
+              {t('member_filtered_note')} <strong>{selectedMember.name}</strong>
             </span>
           </div>
           <button
             onClick={() => setSelectedMemberFilter('all')}
-            className="font-bold underline text-emerald-800 hover:text-emerald-950"
+            className="font-bold underline text-emerald-800 dark:text-emerald-300 hover:text-emerald-950 dark:hover:text-white"
           >
-            Barcha oila koʻrinishiga qaytish
+            {t('family_all')} →
           </button>
         </div>
       )}
 
       {/* 1. HERO BANNER: The Most Important Visual Element -> SAFE TO SPEND */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-emerald-950 text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
         {/* Subtle decorative glow */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
 
@@ -229,24 +220,22 @@ export const DashboardView: React.FC = () => {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold mb-2.5">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>
-                  {selectedMember ? `${selectedMember.name} uchun hisob` : 'Oilaviy xavfsiz meʼyor'} • {formatMonthName(currentMonth)}
+                  {selectedMember ? `${selectedMember.name}` : t('hero_safe_spend')} • {formatMonth(currentMonth)}
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Xavfsiz sarflash darajasi (Safe-to-Spend)
+                {t('hero_safe_spend')}
               </h2>
               <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-                {selectedMember
-                  ? `${selectedMember.name}ning daromadlari, xarajatlari va unga yuklangan majburiyatlar asosida hisoblangan xavfsiz sarflash summasi.`
-                  : 'Majburiy toʻlovlar, kommunal hisoblar va jamgʻarma maqsadlaringizga xalaqit bermasdan butun oila uchun sarflanishi mumkin boʻlgan kafolatlangan mablagʻ.'}
+                {t('hero_safe_spend_desc')}
               </p>
             </div>
 
             <button
               onClick={() => setActiveTab('goals')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition-all self-start sm:self-auto whitespace-nowrap"
+              className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition-all self-start sm:self-auto whitespace-nowrap cursor-pointer"
             >
-              <span>Maqsadlarni koʻrish</span>
+              <span>{t('hero_view_goals')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -255,41 +244,41 @@ export const DashboardView: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Today */}
             <div className="bg-slate-800/80 backdrop-blur-xs rounded-2xl p-4 sm:p-5 border border-slate-700/80">
-              <div className="text-xs font-medium text-slate-400 mb-1">Bugun xavfsiz sarflash:</div>
+              <div className="text-xs font-medium text-slate-400 mb-1">{t('card_safe_today')}:</div>
               <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400">
-                {formatUZS(displaySafeDaily)}
+                {formatCurrency(displaySafeDaily)}
               </div>
               <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Kunlik tavsiya etilgan xavfsiz limit</span>
+                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{t('card_safe_today_desc')}</span>
               </div>
             </div>
 
             {/* This week */}
             <div className="bg-slate-800/80 backdrop-blur-xs rounded-2xl p-4 sm:p-5 border border-slate-700/80">
-              <div className="text-xs font-medium text-slate-400 mb-1">Bu hafta xavfsiz sarflash:</div>
+              <div className="text-xs font-medium text-slate-400 mb-1">{t('card_safe_week')}:</div>
               <div className="text-2xl sm:text-3xl font-extrabold text-emerald-300">
-                {formatUZS(displaySafeWeekly)}
+                {formatCurrency(displaySafeWeekly)}
               </div>
               <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>Haftalik limitni oshirmaslik tavsiya etiladi</span>
+                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{t('card_safe_week_desc')}</span>
               </div>
             </div>
 
             {/* This month */}
             <div className="bg-slate-800/80 backdrop-blur-xs rounded-2xl p-4 sm:p-5 border border-slate-700/80">
-              <div className="text-xs font-medium text-slate-400 mb-1">Bu oy boʻyicha erkin zaxira:</div>
+              <div className="text-xs font-medium text-slate-400 mb-1">{t('card_safe_month')}:</div>
               <div
                 className={`text-2xl sm:text-3xl font-extrabold ${
                   displaySafeMonth >= 0 ? 'text-white' : 'text-rose-400'
                 }`}
               >
-                {formatUZS(displaySafeMonth)}
+                {formatCurrency(displaySafeMonth)}
               </div>
               <div className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Barcha toʻlovlar va maqsad zaxirasidan soʻng</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>{t('card_safe_month_desc')}</span>
               </div>
             </div>
           </div>
@@ -298,25 +287,25 @@ export const DashboardView: React.FC = () => {
 
       {/* Unpaid Bills Alert if any */}
       {summary.totalUnpaidBillsCount > 0 && selectedMemberFilter === 'all' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900">
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 dark:text-amber-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center shrink-0 text-amber-700 dark:text-amber-300">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
               <h4 className="text-sm font-bold">
-                Toʻlanmagan majburiyatlar mavjud: {summary.totalUnpaidBillsCount} ta ({formatUZS(summary.totalUnpaidBillsAmount)})
+                {t('unpaid_bills_alert')}: {summary.totalUnpaidBillsCount} ({formatCurrency(summary.totalUnpaidBillsAmount)})
               </h4>
-              <p className="text-xs text-amber-800 mt-0.5">
-                Kommunal xizmatlar yoki majburiy soliqlarni oʻz vaqtida toʻlash xavfsiz sarflash hisob-kitobini aniq saqlaydi.
+              <p className="text-xs text-amber-800 dark:text-amber-300/80 mt-0.5">
+                {t('unpaid_bills_desc')}
               </p>
             </div>
           </div>
           <button
             onClick={() => setActiveTab('expenses')}
-            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors self-start sm:self-auto"
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors self-start sm:self-auto cursor-pointer"
           >
-            Xarajatlar boʻlimida koʻrish
+            {t('btn_view_details')}
           </button>
         </div>
       )}
@@ -324,323 +313,277 @@ export const DashboardView: React.FC = () => {
       {/* 2. THE 4 CORE FINANCIAL PILLARS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Income */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {selectedMember ? `${selectedMember.name} daromadi` : 'Oila jami daromadi'}
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {t('pillar_incomes')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900">
-            {formatUZS(displayTotalIncome)}
+          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {formatCurrency(displayTotalIncome)}
           </div>
-          <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
             <span>
               {selectedMember
-                ? `Oila daromadining ${selectedMemberData?.percentOfTotalIncome || 0}% qismi`
-                : `${incomes.length} ta manba`}
+                ? `${selectedMember.name}`
+                : `${incomes.length} ${t('pillar_sources')}`}
             </span>
             <button
               onClick={() => setActiveTab('income')}
-              className="text-emerald-700 font-medium hover:underline text-[11px]"
+              className="text-emerald-700 dark:text-emerald-400 font-medium hover:underline text-[11px]"
             >
-              Daromadlar →
+              {t('nav_incomes')} →
             </button>
           </div>
         </div>
 
-        {/* Total Outflows (Everyday expenses) */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all">
+        {/* Total Everyday expenses */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {selectedMember ? `${selectedMember.name} xarajatlari` : 'Kundalik xarajatlar'}
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {t('pillar_expenses')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900">
-            {formatUZS(displayTotalExpenses)}
+          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {formatCurrency(displayTotalExpenses)}
           </div>
-          <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
             <span>
               {selectedMember
-                ? `Oila xarajatining ${selectedMemberData?.percentOfTotalExpenses || 0}% qismi`
-                : `${expenses.length} ta xarid`}
+                ? `${selectedMember.name}`
+                : `${expenses.length} ${t('pillar_transactions')}`}
             </span>
             <button
               onClick={() => setActiveTab('expenses')}
-              className="text-rose-700 font-medium hover:underline text-[11px]"
+              className="text-rose-700 dark:text-rose-400 font-medium hover:underline text-[11px]"
             >
-              Xarajatlar →
+              {t('nav_expenses')} →
             </button>
           </div>
         </div>
 
         {/* Mandatory & Utilities */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Majburiy & Kommunal
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {t('pillar_mandatory')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-slate-900">
-            {formatUZS(displayMandatoryAndUtilities)}
+          <div className="mt-3 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {formatCurrency(displayMandatoryAndUtilities)}
           </div>
-          <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
             <span>
-              {selectedMember
-                ? `${selectedMember.name}ga biriktirilgan`
-                : `${mandatoryPayments.length + utilities.length} ta majburiyat`}
+              {mandatoryPayments.length + utilities.length} {t('pillar_obligations')}
             </span>
             <button
               onClick={() => setActiveTab('expenses')}
-              className="text-blue-700 font-medium hover:underline text-[11px]"
+              className="text-blue-700 dark:text-blue-400 font-medium hover:underline text-[11px]"
             >
-              Tafsilotlar →
+              {t('btn_view_details')} →
             </button>
           </div>
         </div>
 
         {/* Goal Reserve */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-all">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Maqsadlar zaxirasi
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              {t('pillar_goals')}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Target className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3 text-2xl font-bold text-indigo-600">
-            {formatUZS(displayGoalReserve)}
+          <div className="mt-3 text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+            {formatCurrency(displayGoalReserve)}
           </div>
-          <div className="mt-2 text-xs text-slate-500 flex items-center justify-between">
-            <span>{activeGoals.length} ta faol maqsad</span>
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span>{activeGoals.length} {t('pillar_active_goals')}</span>
             <button
               onClick={() => setActiveTab('goals')}
-              className="text-indigo-700 font-medium hover:underline text-[11px]"
+              className="text-indigo-700 dark:text-indigo-400 font-medium hover:underline text-[11px]"
             >
-              Maqsadlar →
+              {t('nav_goals')} →
             </button>
           </div>
         </div>
       </div>
 
       {/* 2.5 FAMILY MEMBERS FINANCIAL CONTRIBUTION BREAKDOWN */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-600" />
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                Oila Aʼzolari Boʻyicha Moliyaviy Taqsimot
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Har bir oila aʼzosining jami daromadga hissasi, xarajatlari va sof moliyaviy balansi
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <span className="text-xs text-slate-400 block">Jami oila sof balansi:</span>
-              <span className="text-base font-extrabold text-emerald-600">
-                {formatUZS(familySummary.familyBalance)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Member cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {familySummary.memberBreakdown.map((item) => {
-            const memberFilterKey = item.memberId ?? 'family';
-            const isSelected = selectedMemberFilter === memberFilterKey;
-            return (
-              <div
-                key={memberFilterKey}
-                onClick={() => setSelectedMemberFilter(isSelected ? 'all' : memberFilterKey)}
-                className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-                  isSelected
-                    ? 'border-emerald-500 bg-emerald-50/30 ring-2 ring-emerald-500/20'
-                    : 'border-slate-200/90 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
-                        {item.memberName.charAt(0)}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-slate-900 line-clamp-1">
-                          {item.memberName}
-                        </h4>
-                        <span className="text-[11px] text-slate-500">
-                          {(item.memberRole && ROLE_LABELS[item.memberRole]) || item.memberRole || 'Oila'}
-                        </span>
-                      </div>
-                    </div>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                        item.isActive
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {item.isActive ? 'Faol' : 'Nofaol'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 py-2 border-t border-b border-slate-100 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600" />
-                        Daromad hissasi:
-                      </span>
-                      <span className="font-bold text-emerald-600">
-                        {formatUZS(item.income)} ({item.percentOfTotalIncome}%)
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <ArrowDownRight className="w-3.5 h-3.5 text-rose-600" />
-                        Xarajatlar hissasi:
-                      </span>
-                      <span className="font-bold text-rose-600">
-                        {formatUZS(item.totalExpenses)} ({item.percentOfTotalExpenses}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Sof qoldiq:</span>
-                  <span
-                    className={`font-extrabold ${
-                      item.netBalance >= 0 ? 'text-emerald-700' : 'text-rose-600'
-                    }`}
-                  >
-                    {formatUZS(item.netBalance)}
-                  </span>
-                </div>
+      {familyMembers.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+                  {t('family_breakdown_title')}
+                </h3>
               </div>
-            );
-          })}
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {t('family_breakdown_desc')}
+              </p>
+            </div>
 
-          {/* Unassigned Family Expenses / Inflows if any */}
-          {(familySummary.unassignedIncome > 0 || familySummary.unassignedExpenses > 0) && (
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
-                    <Home className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-900">
-                      Umumiy oilaviy xarajatlar
-                    </h4>
-                    <span className="text-[11px] text-slate-500">
-                      Hech bir aʼzoga bogʻlanmagan
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-2 py-2 border-t border-b border-slate-200/70 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Umumiy daromad:</span>
-                    <span className="font-bold text-emerald-600">
-                      {formatUZS(familySummary.unassignedIncome)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500">Umumiy xarajatlar:</span>
-                    <span className="font-bold text-rose-600">
-                      {formatUZS(familySummary.unassignedExpenses)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3 pt-2 flex items-center justify-between text-xs">
-                <span className="text-slate-500 font-medium">Umumiy chiqim:</span>
-                <span className="font-bold text-slate-700">
-                  {formatUZS(familySummary.unassignedExpenses)}
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="text-xs text-slate-400 dark:text-slate-500 block">{t('family_balance')}:</span>
+                <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(familySummary.familyBalance)}
                 </span>
               </div>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
 
-      {/* 3. UPCOMING PAYMENTS & OBLIGATIONS BLOCK ("Yaqinlashayotgan to‘lovlar") */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+          {/* Member cards grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {familySummary.memberBreakdown.map((item) => {
+              const memberFilterKey = item.memberId ?? 'family';
+              const isSelected = selectedMemberFilter === memberFilterKey;
+              return (
+                <div
+                  key={memberFilterKey}
+                  onClick={() => setSelectedMemberFilter(isSelected ? 'all' : memberFilterKey)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-850'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-xs">
+                          {item.memberName.charAt(0)}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 line-clamp-1">
+                            {item.memberName}
+                          </h4>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {item.memberRole || 'Oila'}
+                          </span>
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                          item.isActive
+                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {item.isActive ? 'Faol' : 'Nofaol'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 py-2 border-t border-b border-slate-100 dark:border-slate-800 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          {t('pillar_incomes')}:
+                        </span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(item.income)} ({item.percentOfTotalIncome}%)
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                          {t('pillar_expenses')}:
+                        </span>
+                        <span className="font-bold text-rose-600 dark:text-rose-400">
+                          {formatCurrency(item.totalExpenses)} ({item.percentOfTotalExpenses}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-2 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium">{t('family_balance')}:</span>
+                    <span
+                      className={`font-extrabold ${
+                        item.netBalance >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                      }`}
+                    >
+                      {formatCurrency(item.netBalance)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 3. UPCOMING PAYMENTS & OBLIGATIONS BLOCK */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-600" />
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                Yaqinlashayotgan to‘lovlar
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+                {t('upcoming_payments_title')}
               </h3>
-              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs">
-                {displayUpcomingPayments.length} ta kutilayotgan
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 font-bold text-xs">
+                {displayUpcomingPayments.length} {t('upcoming_waiting')}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Soliqlar, kommunal to‘lovlar va maqsad zaxiralarining to‘lov muddatlari va holati
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {t('upcoming_payments_desc')}
             </p>
           </div>
 
-          <div className="text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/80 flex items-center gap-1.5 self-start sm:self-auto">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>To‘lovlar <strong>Safe to Spend</strong> hisobidan avtomatik zaxiralangan</span>
+          <div className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 self-start sm:self-auto">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{t('upcoming_safe_reserved')}</span>
           </div>
         </div>
 
         {displayUpcomingPayments.length === 0 ? (
           <div className="py-8 text-center text-slate-400">
             <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-500 mb-1.5" />
-            <p className="text-xs font-semibold text-slate-700">
-              {selectedMember
-                ? `${selectedMember.name} uchun toʻlanmagan majburiyatlar topilmadi!`
-                : 'Ushbu oy uchun barcha majburiy to‘lovlar to‘langan!'}
+            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {t('upcoming_empty')}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {displayUpcomingPayments.slice(0, 6).map((item) => {
               const isTax = item.type === 'tax';
-              const isUtil = item.type === 'utility';
               const isGoal = item.type === 'goal';
 
-              let borderColor = 'border-slate-200/90 hover:border-slate-300';
-              let bgColor = 'bg-slate-50/50 hover:bg-slate-50';
-              let badgeColor = 'bg-slate-100 text-slate-800';
+              let borderColor = 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700';
+              let bgColor = 'bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/70';
+              let badgeColor = 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200';
               let iconNode = '📌';
               let badgeText = 'Majburiyat';
 
               if (isTax) {
-                borderColor = 'border-rose-200 hover:border-rose-300';
-                bgColor = 'bg-rose-50/20 hover:bg-rose-50/50';
-                badgeColor = 'bg-rose-100 text-rose-800 border border-rose-200 font-bold';
+                borderColor = 'border-rose-200 dark:border-rose-900 hover:border-rose-300';
+                bgColor = 'bg-rose-50/20 dark:bg-rose-950/20 hover:bg-rose-50/50';
+                badgeColor = 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 border border-rose-200 dark:border-rose-800 font-bold';
                 iconNode = '⚠️';
                 badgeText = 'Soliq';
-              } else if (isUtil) {
-                borderColor = 'border-amber-200 hover:border-amber-300';
-                bgColor = 'bg-amber-50/20 hover:bg-amber-50/50';
-                badgeColor = 'bg-amber-100 text-amber-900 border border-amber-200 font-bold';
+              } else if (item.type === 'utility') {
+                borderColor = 'border-amber-200 dark:border-amber-900 hover:border-amber-300';
+                bgColor = 'bg-amber-50/20 dark:bg-amber-950/20 hover:bg-amber-50/50';
+                badgeColor = 'bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800 font-bold';
                 iconNode = '🟡';
-                badgeText = 'Elektr / Kommunal';
+                badgeText = 'Kommunal';
               } else if (isGoal) {
-                borderColor = 'border-indigo-200 hover:border-indigo-300';
-                bgColor = 'bg-indigo-50/20 hover:bg-indigo-50/50';
-                badgeColor = 'bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold';
+                borderColor = 'border-indigo-200 dark:border-indigo-900 hover:border-indigo-300';
+                bgColor = 'bg-indigo-50/20 dark:bg-indigo-950/20 hover:bg-indigo-50/50';
+                badgeColor = 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800 font-bold';
                 iconNode = '🔵';
                 badgeText = 'Maqsad';
               }
@@ -673,12 +616,12 @@ export const DashboardView: React.FC = () => {
                           {badgeText}
                         </span>
                         {assignedMember ? (
-                          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-slate-100 text-slate-700 font-medium">
+                          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                             {assignedMember.name}
                           </span>
                         ) : (
-                          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-slate-100 text-slate-500 font-medium">
-                            Oilaviy
+                          <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium">
+                            {t('family_title')}
                           </span>
                         )}
                       </div>
@@ -687,23 +630,23 @@ export const DashboardView: React.FC = () => {
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-sm text-slate-900 group-hover:text-slate-950 transition-colors line-clamp-1">
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-slate-950 dark:group-hover:text-white transition-colors line-clamp-1">
                       {item.title}
                     </h4>
 
-                    <div className="mt-2 text-xl font-extrabold text-slate-900 tracking-tight">
-                      {formatUZS(item.amount)}
+                    <div className="mt-2 text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+                      {formatCurrency(item.amount)}
                     </div>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-slate-200/70 flex items-center justify-between text-xs">
-                    <span className="text-slate-500 font-medium flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <div className="mt-3 pt-3 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       {item.dueDateLabel}
                     </span>
 
-                    <span className="text-slate-700 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-1 text-[11px]">
-                      {isTax ? 'Soliqlarga o‘tish' : isUtil ? 'Kommunalga o‘tish' : 'Maqsadga o‘tish'} →
+                    <span className="text-slate-700 dark:text-slate-300 font-semibold group-hover:translate-x-0.5 transition-transform flex items-center gap-1 text-[11px]">
+                      {t('btn_view_details')} →
                     </span>
                   </div>
                 </div>
@@ -713,149 +656,133 @@ export const DashboardView: React.FC = () => {
         )}
       </div>
 
-      {/* 4. SIMPLE MONTHLY FINANCIAL SUMMARY & INTEGRATED REPORTS */}
+      {/* 4. SIMPLE MONTHLY FINANCIAL SUMMARY & ALLOCATION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 cols: Monthly Inflow Allocation & Balance */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/90 p-6 shadow-2xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                Oylik Moliyaviy Balans ({formatMonthName(currentMonth)})
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+                {t('monthly_balance_title')} ({formatMonth(currentMonth)})
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Daromad, majburiyatlar va jamgʻarmaning toʻliq taqsimoti
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('monthly_balance_desc')}
               </p>
             </div>
             <div className="text-right">
-              <span className="text-xs text-slate-400 block">Kafolatlangan erkin qoldiq:</span>
-              <span className="text-base font-extrabold text-emerald-600">
-                {formatUZS(displaySafeMonth)}
+              <span className="text-xs text-slate-400 dark:text-slate-500 block">{t('card_safe_month')}:</span>
+              <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+                {formatCurrency(displaySafeMonth)}
               </span>
             </div>
           </div>
 
           {/* Allocation Bar */}
           <div className="space-y-2">
-            <div className="flex justify-between text-xs font-semibold text-slate-600">
-              <span>Daromadning sarflanish taqsimoti</span>
-              <span>100% ({formatUZS(displayTotalIncome)})</span>
+            <div className="flex justify-between text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <span>{t('monthly_allocation')}</span>
+              <span>100% ({formatCurrency(displayTotalIncome)})</span>
             </div>
 
-            <div className="w-full h-4 rounded-full bg-slate-100 flex overflow-hidden">
-              {/* Everyday expenses */}
+            <div className="w-full h-4 rounded-full bg-slate-100 dark:bg-slate-800 flex overflow-hidden">
               <div
                 style={{ width: `${expensePercent}%` }}
                 className="h-full bg-rose-500 transition-all duration-500"
-                title={`Kundalik xarajatlar: ${expensePercent}%`}
               />
-              {/* Utilities */}
               <div
                 style={{ width: `${utilitiesPercent}%` }}
                 className="h-full bg-amber-500 transition-all duration-500"
-                title={`Kommunal toʻlovlar: ${utilitiesPercent}%`}
               />
-              {/* Mandatory */}
               <div
                 style={{ width: `${mandatoryPercent}%` }}
                 className="h-full bg-blue-500 transition-all duration-500"
-                title={`Soliq va majburiy: ${mandatoryPercent}%`}
               />
-              {/* Goal reserve */}
               <div
                 style={{ width: `${goalReservePercent}%` }}
                 className="h-full bg-indigo-500 transition-all duration-500"
-                title={`Maqsadlar zaxirasi: ${goalReservePercent}%`}
               />
-              {/* Remaining safe */}
               <div
                 style={{ width: `${remainingPercent}%` }}
                 className="h-full bg-emerald-500 transition-all duration-500"
-                title={`Erkin qoldiq: ${remainingPercent}%`}
               />
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 text-xs text-slate-600">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 text-xs text-slate-600 dark:text-slate-400">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-rose-500 shrink-0" />
-                <span>Kundalik: {formatUZS(displayTotalExpenses)}</span>
+                <span>{t('pillar_expenses')}: {formatCurrency(displayTotalExpenses)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-amber-500 shrink-0" />
-                <span>Kommunal: {formatUZS(selectedMemberData ? selectedMemberData.utilities : summary.totalUtilities)}</span>
+                <span>Kommunal: {formatCurrency(selectedMemberData ? selectedMemberData.utilities : summary.totalUtilities)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-blue-500 shrink-0" />
-                <span>Majburiy: {formatUZS(selectedMemberData ? selectedMemberData.mandatory : summary.totalMandatory)}</span>
+                <span>{t('pillar_mandatory')}: {formatCurrency(selectedMemberData ? selectedMemberData.mandatory : summary.totalMandatory)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-indigo-500 shrink-0" />
-                <span>Maqsadlar: {formatUZS(displayGoalReserve)}</span>
+                <span>{t('pillar_goals')}: {formatCurrency(displayGoalReserve)}</span>
               </div>
-              <div className="flex items-center gap-1.5 font-bold text-emerald-700">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400">
                 <div className="w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
-                <span>Erkin: {formatUZS(displaySafeMonth)}</span>
+                <span>{t('card_safe_month')}: {formatCurrency(displaySafeMonth)}</span>
               </div>
             </div>
           </div>
 
           {/* Income vs Outflows Comparison Report */}
-          <div className="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                Sof oylik tejov (Savings rate)
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                {t('monthly_savings_rate')}
               </span>
               <div
                 className={`text-xl font-extrabold mt-1 ${
-                  displaySavingsRate >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                  displaySavingsRate >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                 }`}
               >
-                {displaySavingsRate}% ({formatUZS(displayNetSavings)})
+                {displaySavingsRate}% ({formatCurrency(displayNetSavings)})
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Jami daromaddan barcha chiqimlar ayrilgandan keyin
-              </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
-                Chiqimlar ulushi
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                {t('monthly_outflows_share')}
               </span>
-              <div className="text-xl font-extrabold text-slate-900 mt-1">
-                {formatUZS(displayTotalOutflows)}
+              <div className="text-xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">
+                {formatCurrency(displayTotalOutflows)}
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">
-                Daromadning {displayTotalIncome > 0 ? Math.round((displayTotalOutflows / displayTotalIncome) * 100) : 0}% qismi sarflanadi
-              </p>
             </div>
           </div>
         </div>
 
         {/* Right 1 col: Current Goals Quick Progress */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Target className="w-4 h-4 text-indigo-600" />
-                <span>Joriy maqsadlar</span>
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Target className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>{t('goals_active_title')}</span>
               </h3>
               <button
                 onClick={() => setActiveTab('goals')}
-                className="text-xs font-semibold text-indigo-600 hover:underline"
+                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
               >
-                Barchasi ({goals.length})
+                {t('btn_view_details')} ({goals.length})
               </button>
             </div>
 
             {activeGoals.length === 0 ? (
-              <div className="py-8 text-center text-slate-400">
-                <Target className="w-8 h-8 mx-auto text-slate-300 mb-1.5" />
-                <p className="text-xs font-medium">Faol maqsadlar topilmadi</p>
+              <div className="py-8 text-center text-slate-400 dark:text-slate-500">
+                <Target className="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-1.5" />
+                <p className="text-xs font-medium">{t('goals_empty')}</p>
                 <button
                   onClick={() => openModal('goal')}
-                  className="mt-3 text-xs font-bold text-indigo-600 hover:underline"
+                  className="mt-3 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >
-                  + Yangi maqsad qoʻshish
+                  + {t('btn_add_goal')}
                 </button>
               </div>
             ) : (
@@ -873,24 +800,24 @@ export const DashboardView: React.FC = () => {
                     <div key={goal.id} className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs font-medium">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-slate-800">{goal.name}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">{goal.name}</span>
                           {goalMember && (
-                            <span className="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
+                            <span className="text-[10px] px-1.5 py-0.2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded">
                               {goalMember.name}
                             </span>
                           )}
                         </div>
-                        <span className="text-slate-500 font-bold">{percent}%</span>
+                        <span className="text-slate-500 dark:text-slate-400 font-bold">{percent}%</span>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                         <div
                           style={{ width: `${percent}%` }}
                           className="h-full bg-indigo-500 rounded-full"
                         />
                       </div>
-                      <div className="flex justify-between text-[11px] text-slate-400">
-                        <span>Jamgʻarildi: {formatUZS(goal.currentSavedAmount)}</span>
-                        <span>Maqsad: {formatUZS(goal.targetAmount)}</span>
+                      <div className="flex justify-between text-[11px] text-slate-400 dark:text-slate-500">
+                        <span>{formatCurrency(goal.currentSavedAmount)}</span>
+                        <span>{formatCurrency(goal.targetAmount)}</span>
                       </div>
                     </div>
                   );
@@ -899,12 +826,12 @@ export const DashboardView: React.FC = () => {
             )}
           </div>
 
-          <div className="pt-4 border-t border-slate-100 mt-4">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 mt-4">
             <button
               onClick={() => setActiveTab('goals')}
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-slate-200/80"
+              className="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-slate-200/80 dark:border-slate-700 cursor-pointer"
             >
-              <span>Maqsadlarni rejalashtirish boʻlimi</span>
+              <span>{t('nav_goals')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -925,4 +852,3 @@ export const DashboardView: React.FC = () => {
     </div>
   );
 };
-

@@ -5,33 +5,20 @@ import {
   Trash2,
   Edit2,
   Calendar,
-  CheckCircle2,
-  Clock,
-  Info,
-  Check,
-  AlertTriangle,
   Settings,
-  HelpCircle,
-  ExternalLink,
-  Lock,
-  ArrowRight,
-  TrendingDown,
-  Sparkles,
-  Receipt,
-  Building2,
-  Coins,
+  Check,
   RefreshCw,
+  Building2,
+  Sparkles,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { MandatoryCategory, MandatoryPayment } from '../../types';
 import {
   MANDATORY_CATEGORY_LABELS,
-  formatUZS,
   formatUzbekDate,
-  formatMonthName,
 } from '../../utils/formatters';
 import {
-  UZBEKISTAN_TAX_CONFIG,
   TAX_TYPE_INFO,
   TAX_PROFILE_TYPE_LABELS,
   calculateDeadlineStatus,
@@ -52,6 +39,8 @@ export const TaxesMandatoryView: React.FC = () => {
     estimatedTax,
     syncEstimatedTaxToMonth,
   } = useFinance();
+
+  const { t, formatCurrency, formatMonth } = useLanguage();
 
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -104,37 +93,37 @@ export const TaxesMandatoryView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* 1. Header Banner */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 text-xs font-semibold mb-2">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Soliq va majburiyatlar tizimi</span>
+            <span>{t('pillar_mandatory')}</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Soliqlar va Majburiy Toʻlovlar ({formatMonthName(currentMonth)})
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {t('pillar_mandatory')} ({formatMonth(currentMonth)})
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Soliq profili, avtomatik zaxiralash, yaqinlashayotgan to‘lovlar va Safe to Spend himoyasi
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Soliq profili, qatʼiy toʻlovlar va Safe-to-Spend himoyasi
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setIsProfileModalOpen(true)}
-            className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors"
+            className="min-h-[44px] px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer"
           >
-            <Settings className="w-4 h-4 text-slate-600" />
-            <span>Soliq profili sozlamalari</span>
+            <Settings className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+            <span>Soliq sozlamalari</span>
           </button>
 
           <button
             onClick={() => openModal('mandatory')}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs flex items-center justify-center gap-2 transition-colors"
+            className="min-h-[44px] px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Majburiyat qoʻshish</span>
+            <span>{t('btn_add')}</span>
           </button>
         </div>
       </div>
@@ -143,46 +132,39 @@ export const TaxesMandatoryView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Live Tax Estimation Card */}
         <div className="lg:col-span-2 bg-gradient-to-br from-blue-900 via-slate-900 to-indigo-950 text-white rounded-3xl p-6 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          {/* Subtle background glow */}
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-
           <div className="relative z-10 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-700/60 pb-4">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-blue-300 block">
-                  Avtomatik soliq hisob-kitobi (Tax Estimation)
+                  Avtomatik soliq hisob-kitobi
                 </span>
                 <h3 className="text-xl sm:text-2xl font-extrabold mt-0.5">
-                  Taxminiy Soliq Majburiyati: {formatUZS(estimatedTax.amountToPay)}
+                  Taxminiy Soliq: {formatCurrency(estimatedTax.amountToPay)}
                 </h3>
               </div>
 
               <div className="px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-semibold self-start sm:self-auto flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-blue-300" />
-                <span>Oylik daromaddan hisoblandi</span>
+                <span>Daromaddan hisoblandi</span>
               </div>
             </div>
 
             {/* Calculations Breakdown */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
               <div className="bg-slate-800/70 rounded-2xl p-3.5 border border-slate-700/70">
-                <span className="text-[11px] text-slate-400 block font-medium">Joriy oylik daromad:</span>
+                <span className="text-[11px] text-slate-400 block font-medium">Joriy daromad:</span>
                 <div className="text-base sm:text-lg font-bold text-white mt-1">
-                  {formatUZS(summary.totalIncome)}
+                  {formatCurrency(summary.totalIncome)}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1 block">Barcha tushumlar</span>
               </div>
 
               <div className="bg-slate-800/70 rounded-2xl p-3.5 border border-slate-700/70">
-                <span className="text-[11px] text-slate-400 block font-medium">Qo‘llangan stavka:</span>
+                <span className="text-[11px] text-slate-400 block font-medium">Stavka:</span>
                 <div className="text-base sm:text-lg font-bold text-blue-300 mt-1">
                   {taxProfile.calculationMethod === 'percentage'
                     ? `${taxProfile.customRatePercent ?? 12}% (${TAX_TYPE_INFO[taxProfile.taxType]?.label || 'Stavka'})`
-                    : `${formatUZS(taxProfile.fixedMonthlyAmount ?? 350000)} (Qatʼiy)`}
+                    : `${formatCurrency(taxProfile.fixedMonthlyAmount ?? 350000)}`}
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  {TAX_TYPE_INFO[taxProfile.taxType]?.legalReference}
-                </span>
               </div>
 
               <div className="bg-slate-800/70 rounded-2xl p-3.5 border border-slate-700/70">
@@ -190,9 +172,6 @@ export const TaxesMandatoryView: React.FC = () => {
                 <div className="text-base sm:text-lg font-bold text-amber-300 mt-1">
                   Har oy {taxProfile.dueDayOfMonth}-sana
                 </div>
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  {currentMonth}-{String(taxProfile.dueDayOfMonth).padStart(2, '0')} gacha
-                </span>
               </div>
             </div>
 
@@ -200,156 +179,103 @@ export const TaxesMandatoryView: React.FC = () => {
             <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/30 flex items-start gap-3 text-xs text-emerald-200">
               <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <div className="leading-relaxed">
-                <span className="font-bold text-emerald-100">Safe to Spend himoyasi faol: </span>
-                Soliq uchun hisoblangan <strong>{formatUZS(estimatedTax.amountToPay)}</strong> mablag‘
-                erkin sarflanadigan pulingizdan ajratilgan. Bu sizga soliq mablag‘larini bilmasdan
-                sarflab qo‘ymaslik kafolatini beradi.
+                <span className="font-bold text-emerald-100">Safe-to-Spend himoyasi: </span>
+                Soliq uchun hisoblangan <strong>{formatCurrency(estimatedTax.amountToPay)}</strong> avtomatik ravishda erkin sarflanadigan pulingizdan ajratilgan.
               </div>
-            </div>
-
-            {/* Prominent Mandatory Legal Disclaimer */}
-            <div className="p-3 rounded-xl bg-slate-800/90 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-200/90">
-              <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-              <p className="leading-relaxed text-[11px]">
-                <strong>Muhim eslatma: </strong>
-                {UZBEKISTAN_TAX_CONFIG.DISCLAIMER_TEXT} Bu rasmiy soliq hisob-kitobi emas, balki
-                foydalanuvchi kiritgan ma’lumotlar asosidagi taxminiy rejalashtirishdir.
-              </p>
             </div>
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <span className="text-slate-400">
+            <span className="text-slate-400 text-[11px]">
               Formulasi: <code className="text-slate-300">{estimatedTax.formulaDescription}</code>
             </span>
 
             <button
               onClick={() => syncEstimatedTaxToMonth(currentMonth)}
-              className="px-3 py-1.5 rounded-xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold transition-all flex items-center gap-1.5"
+              className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-blue-500 hover:bg-blue-400 text-slate-950 font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>Oylik zaxirani yangilash</span>
+              <span>Zaxirani yangilash</span>
             </button>
           </div>
         </div>
 
-        {/* Right 1 Col: User Tax Profile Summary & Official Integration Ready Card */}
+        {/* Right 1 Col: User Tax Profile Summary */}
         <div className="space-y-4 flex flex-col justify-between">
-          {/* Tax Profile Details */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3.5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xs space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <h4 className="font-bold text-sm text-slate-900">Faol Soliq Profili</h4>
+                <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">Soliq Profili</h4>
               </div>
               <button
                 onClick={() => setIsProfileModalOpen(true)}
-                className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
+                className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
               >
                 O‘zgartirish
               </button>
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">Profil turi:</span>
-                <span className="font-bold text-slate-800">
+              <div className="flex justify-between py-1 border-b border-slate-50 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Profil turi:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
                   {TAX_PROFILE_TYPE_LABELS[taxProfile.profileType]}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">Soliq turi:</span>
-                <span className="font-bold text-slate-800">
+              <div className="flex justify-between py-1 border-b border-slate-50 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Soliq turi:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
                   {TAX_TYPE_INFO[taxProfile.taxType]?.label}
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">Daromad manbasi:</span>
-                <span className="font-bold text-slate-800 capitalize">{taxProfile.incomeSource}</span>
-              </div>
-              <div className="flex justify-between py-1 border-b border-slate-50">
-                <span className="text-slate-500">To‘lov davri:</span>
-                <span className="font-bold text-slate-800">
-                  {taxProfile.paymentPeriod === 'monthly'
-                    ? 'Har oy (Oylik)'
-                    : taxProfile.paymentPeriod === 'quarterly'
-                    ? 'Choraklik'
-                    : 'Yillik'}
-                </span>
+              <div className="flex justify-between py-1 border-b border-slate-50 dark:border-slate-800">
+                <span className="text-slate-500 dark:text-slate-400">Daromad manbasi:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">{taxProfile.incomeSource}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-500">Eslatmalar:</span>
-                <span className="font-bold text-blue-700">
-                  {taxProfile.reminderDaysBefore.length} ta bildirishnoma
+                <span className="text-slate-500 dark:text-slate-400">To‘lov davri:</span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {taxProfile.paymentPeriod === 'monthly' ? 'Har oy' : taxProfile.paymentPeriod === 'quarterly' ? 'Choraklik' : 'Yillik'}
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* 6. RASMIY INTEGRATSIYA UCHUN TAYYORGARLIK (Future State API Adapter) */}
-          <div className="bg-slate-50 rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
-                  <Lock className="w-3.5 h-3.5" />
-                </div>
-                <h4 className="font-bold text-xs sm:text-sm text-slate-900">
-                  Soliq to‘lovlarini avtomatlashtirish
-                </h4>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                Tez kunda
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Soliq to‘lovchi kabineti (my.soliq.uz) bilan rasmiy davlat API integratsiyasi
-              rejalashtirilgan. Kelajakda real hisob-fakturalar va qarzdorliklar avtomatik
-              sinxronizatsiya qilinadi.
-            </p>
-
-            <button
-              disabled
-              className="w-full py-2.5 px-3 rounded-xl bg-slate-200/90 text-slate-500 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-not-allowed"
-            >
-              <span>Davlat soliq kabinetini ulash (Tez kunda)</span>
-            </button>
           </div>
         </div>
       </div>
 
       {/* 3. Stat Cards for Current Month Obligations */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Jami majburiyatlar
           </div>
-          <div className="mt-2 text-2xl font-bold text-slate-900">
-            {formatUZS(totalMandatory)}
+          <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {formatCurrency(totalMandatory)}
           </div>
           <div className="mt-1 text-xs text-slate-400">
-            {currentMonthMandatory.length} ta belgilangan toʻlov
+            {currentMonthMandatory.length} ta toʻlov
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Toʻlangan qism
           </div>
-          <div className="mt-2 text-2xl font-bold text-emerald-600">
-            {formatUZS(totalMandatory - unpaidTotal)}
+          <div className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {formatCurrency(totalMandatory - unpaidTotal)}
           </div>
           <div className="mt-1 text-xs text-slate-400">
             {currentMonthMandatory.filter((m) => m.isPaid).length} ta toʻlangan
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-2xs">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Kutilayotgan toʻlovlar
           </div>
-          <div className="mt-2 text-2xl font-bold text-rose-600">
-            {formatUZS(unpaidTotal)}
+          <div className="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400">
+            {formatCurrency(unpaidTotal)}
           </div>
           <div className="mt-1 text-xs text-slate-400">
             {unpaidItems.length} ta toʻlanishi zarur
@@ -357,14 +283,14 @@ export const TaxesMandatoryView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Filters & Search bar */}
+      {/* 4. Filters */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         <button
           onClick={() => setFilterCategory('all')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+          className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             filterCategory === 'all'
               ? 'bg-blue-600 text-white'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
           Barchasi ({currentMonthMandatory.length})
@@ -372,10 +298,10 @@ export const TaxesMandatoryView: React.FC = () => {
 
         <button
           onClick={() => setFilterCategory('tax')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+          className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             filterCategory === 'tax'
               ? 'bg-blue-600 text-white'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
           Soliqlar ({currentMonthMandatory.filter((m) => m.category === 'tax').length})
@@ -383,73 +309,40 @@ export const TaxesMandatoryView: React.FC = () => {
 
         <button
           onClick={() => setFilterCategory('loan_repayment')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+          className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             filterCategory === 'loan_repayment'
               ? 'bg-blue-600 text-white'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
         >
           Kreditlar ({currentMonthMandatory.filter((m) => m.category === 'loan_repayment').length})
         </button>
-
-        <button
-          onClick={() => setFilterCategory('insurance')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-            filterCategory === 'insurance'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          Sugʻurta ({currentMonthMandatory.filter((m) => m.category === 'insurance').length})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory('government')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-            filterCategory === 'government'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          Davlat toʻlovlari ({currentMonthMandatory.filter((m) => m.category === 'government').length})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory('other_mandatory')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-            filterCategory === 'other_mandatory'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          Boshqalar ({currentMonthMandatory.filter((m) => m.category === 'other_mandatory').length})
-        </button>
       </div>
 
-      {/* 5. Mandatory List with Deadlines, Countdown & Actions */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-bold text-sm text-slate-900">
+      {/* 5. Mandatory List */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
             Majburiyatlar roʻyxati ({filteredMandatory.length})
           </h3>
           <span className="text-xs text-slate-400">
-            {formatMonthName(currentMonth)} oyi boʻyicha
+            {formatMonth(currentMonth)}
           </span>
         </div>
 
         {filteredMandatory.length === 0 ? (
-          <div className="py-12 text-center text-slate-400">
-            <ShieldCheck className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+          <div className="py-12 text-center text-slate-400 dark:text-slate-500">
+            <ShieldCheck className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
             <p className="text-sm font-medium">Ushbu toifada toʻlovlar mavjud emas</p>
             <button
               onClick={() => openModal('mandatory')}
-              className="mt-3 text-xs font-bold text-blue-600 hover:underline"
+              className="mt-3 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
             >
-              + Yangi majburiy toʻlov kiritish
+              + Yangi toʻlov kiritish
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {filteredMandatory.map((m) => {
               const catMeta = MANDATORY_CATEGORY_LABELS[m.category] || {
                 label: 'Boshqa',
@@ -460,26 +353,26 @@ export const TaxesMandatoryView: React.FC = () => {
 
               if (editingId === m.id) {
                 return (
-                  <div key={m.id} className="p-4 bg-blue-50/40 space-y-3">
+                  <div key={m.id} className="p-4 bg-blue-50/40 dark:bg-blue-950/20 space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                       <input
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
                         placeholder="Nomi"
-                        className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
+                        className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                       />
                       <input
                         type="number"
                         value={editAmountStr}
                         onChange={(e) => setEditAmountStr(e.target.value)}
                         placeholder="Summasi"
-                        className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
+                        className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                       />
                       <select
                         value={editCategory}
                         onChange={(e) => setEditCategory(e.target.value as MandatoryCategory)}
-                        className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
+                        className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                       >
                         <option value="tax">Soliq</option>
                         <option value="loan_repayment">Kredit</option>
@@ -492,7 +385,7 @@ export const TaxesMandatoryView: React.FC = () => {
                         type="date"
                         value={editDueDate}
                         onChange={(e) => setEditDueDate(e.target.value)}
-                        className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
+                        className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100"
                       />
                     </div>
                     <div className="flex items-center justify-between gap-2">
@@ -501,21 +394,21 @@ export const TaxesMandatoryView: React.FC = () => {
                         value={editNotes}
                         onChange={(e) => setEditNotes(e.target.value)}
                         placeholder="Izoh"
-                        className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none flex-1 max-w-md"
+                        className="px-3 py-1.5 text-sm bg-white dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 flex-1 max-w-md"
                       />
                       <div className="flex items-center gap-2">
                         <button
                           onClick={cancelEdit}
-                          className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+                          className="min-h-[36px] px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer"
                         >
-                          Bekor qilish
+                          {t('btn_cancel')}
                         </button>
                         <button
                           onClick={() => saveEdit(m.id)}
-                          className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                          className="min-h-[36px] px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1 cursor-pointer"
                         >
                           <Check className="w-3.5 h-3.5" />
-                          <span>Saqlash</span>
+                          <span>{t('btn_save')}</span>
                         </button>
                       </div>
                     </div>
@@ -526,16 +419,16 @@ export const TaxesMandatoryView: React.FC = () => {
               return (
                 <div
                   key={m.id}
-                  className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 transition-colors"
+                  className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                 >
                   <div className="flex items-start sm:items-center gap-3">
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 ${
                         m.category === 'tax'
-                          ? 'bg-rose-50 text-rose-600'
+                          ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
                           : m.category === 'loan_repayment'
-                          ? 'bg-amber-50 text-amber-600'
-                          : 'bg-blue-50 text-blue-600'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                          : 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
                       }`}
                     >
                       <ShieldCheck className="w-4 h-4" />
@@ -543,40 +436,32 @@ export const TaxesMandatoryView: React.FC = () => {
 
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-bold text-sm text-slate-900">{m.name}</h4>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{m.name}</h4>
 
-                        {/* Paid toggle badge */}
                         <button
                           onClick={() => toggleMandatoryPaid(m.id)}
-                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all cursor-pointer ${
                             m.isPaid
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                              : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                              : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
                           }`}
                         >
-                          {m.isPaid ? '✓ Toʻlangan' : '⏳ Toʻlanmagan'}
+                          {m.isPaid ? '✓ Toʻlangan' : '⏳ Kutilmoqda'}
                         </button>
 
-                        {/* Countdown / Deadline Status badge */}
                         <span
                           className={`text-[10px] px-2 py-0.5 rounded-full border ${deadlineInfo.badgeColorClass}`}
                         >
                           {deadlineInfo.statusLabel}
                         </span>
-
-                        {m.isEstimated && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-medium">
-                            Taxminiy zaxira
-                          </span>
-                        )}
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500">
-                        <span className="text-slate-600 font-medium">{catMeta.label}</span>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="font-medium">{catMeta.label}</span>
                         <span>•</span>
-                        <span className="inline-flex items-center gap-1 text-slate-500">
+                        <span className="inline-flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-slate-400" />
-                          Toʻlov sanasi: {formatUzbekDate(m.dueDate)}
+                          Sana: {formatUzbekDate(m.dueDate)}
                         </span>
                         {m.notes && (
                           <>
@@ -592,27 +477,27 @@ export const TaxesMandatoryView: React.FC = () => {
 
                   <div className="flex items-center justify-between sm:justify-end gap-4">
                     <div className="text-right">
-                      <div className="text-base font-extrabold text-slate-900">
-                        {formatUZS(m.amount)}
+                      <div className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                        {formatCurrency(m.amount)}
                       </div>
                       {m.paidDate && (
-                        <div className="text-[11px] text-emerald-600">
-                          Toʻlangan sana: {formatUzbekDate(m.paidDate)}
+                        <div className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                          Toʻlangan: {formatUzbekDate(m.paidDate)}
                         </div>
                       )}
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => startEdit(m)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                        title="Tahrirlash"
+                        className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+                        title={t('btn_edit')}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => deleteMandatory(m.id)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                        title="Oʻchirish"
+                        className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center cursor-pointer"
+                        title={t('btn_delete')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

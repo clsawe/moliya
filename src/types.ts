@@ -103,6 +103,7 @@ export interface Income {
   category: IncomeCategory;
   notes?: string;
   memberId?: string | null;
+  accountId?: string;
 }
 
 export interface Expense {
@@ -114,6 +115,7 @@ export interface Expense {
   isRecurring: boolean;
   isEssential?: boolean; // essential vs flexible/discretionary
   memberId?: string | null;
+  accountId?: string;
 }
 
 export interface UtilityBill {
@@ -335,5 +337,27 @@ export type ActiveTab =
   | 'goal-planner'
   | 'reports'
   | 'settings';
+
+export type AccountType = 'card' | 'cash' | 'bank' | 'other';
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  openingBalance: number;
+  currency: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface Transfer {
+  id: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  createdAt: string;
+}
 
 export * from './services/payment/types';

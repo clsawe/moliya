@@ -7,24 +7,15 @@ import {
   Calendar,
   Repeat,
   Check,
-  ShieldAlert,
   Zap,
   ShieldCheck,
   PieChart,
-  Filter,
   Users,
-  User,
 } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { ExpenseCategory, Expense } from '../../types';
-import {
-  EXPENSE_CATEGORY_LABELS,
-  UTILITY_CATEGORY_LABELS,
-  MANDATORY_CATEGORY_LABELS,
-  formatUZS,
-  formatUzbekDate,
-  formatMonthName,
-} from '../../utils/formatters';
+import { EXPENSE_CATEGORY_LABELS } from '../../utils/formatters';
 import { UtilitiesView } from './UtilitiesView';
 import { TaxesMandatoryView } from './TaxesMandatoryView';
 
@@ -47,6 +38,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
     activeFamilyMembers,
     familyMembers,
   } = useFinance();
+
+  const { t, formatCurrency, formatMonth, formatDate } = useLanguage();
+
   const [activeSubTab, setActiveSubTab] = useState<'everyday' | 'utilities' | 'mandatory' | 'analytics'>(
     expensesSubTab || initialTab
   );
@@ -77,7 +71,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
   // Month expenses
   const monthExpenses = expenses.filter((exp) => exp.date.startsWith(currentMonth));
-  
+
   // Member filtered expenses
   const memberFilteredExpenses = monthExpenses.filter((exp) => {
     if (selectedMemberFilter === 'all') return true;
@@ -132,38 +126,40 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Central Outflow Overview Banner */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-5">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-2xs transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5 mb-5">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-semibold mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-xs font-semibold mb-2">
               <Receipt className="w-3.5 h-3.5" />
-              <span>Chiqimlar markazi</span>
+              <span>{t('pillar_expenses')}</span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
-              Xarajatlar ({formatMonthName(currentMonth)})
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {t('nav_expenses')} ({formatMonth(currentMonth)})
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Kundalik xarajatlar, kommunal toʻlovlar va majburiy soliqlarning yagona boshqaruvi
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              {t('app_subtitle')}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 text-right">
-              <span className="text-[11px] font-semibold text-slate-500 block">Jami barcha chiqimlar:</span>
-              <span className="text-lg sm:text-xl font-extrabold text-rose-600 block">
-                {formatUZS(totalAllOutflows)}
+            <div className="bg-slate-50 dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-right">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
+                {t('monthly_outflows_share')}:
+              </span>
+              <span className="text-lg sm:text-xl font-extrabold text-rose-600 dark:text-rose-400 block">
+                {formatCurrency(totalAllOutflows)}
               </span>
             </div>
 
             {activeSubTab === 'everyday' && (
               <button
                 onClick={() => openModal('expense')}
-                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 transition-colors whitespace-nowrap"
+                className="min-h-[44px] px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Xarajat qoʻshish</span>
+                <span>{t('btn_add_expense')}</span>
               </button>
             )}
           </div>
@@ -173,111 +169,115 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onClick={() => handleSubTabChange('everyday')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
+            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
               activeSubTab === 'everyday'
-                ? 'bg-rose-50 border-rose-300 ring-2 ring-rose-500/20'
-                : 'bg-white border-slate-200/90 hover:border-slate-300'
+                ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-400 ring-2 ring-rose-500/20'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
             }`}
           >
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Receipt className="w-3.5 h-3.5 text-rose-500" />
               <span>Kundalik</span>
             </div>
-            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900">
-              {formatUZS(totalMonthlyEveryday)}
+            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+              {formatCurrency(totalMonthlyEveryday)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{monthExpenses.length} ta xarid</div>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{monthExpenses.length} ta</div>
           </button>
 
           <button
             onClick={() => handleSubTabChange('utilities')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
+            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
               activeSubTab === 'utilities'
-                ? 'bg-amber-50 border-amber-300 ring-2 ring-amber-500/20'
-                : 'bg-white border-slate-200/90 hover:border-slate-300'
+                ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-400 ring-2 ring-amber-500/20'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
             }`}
           >
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 text-amber-500" />
                 <span>Kommunal</span>
               </span>
               {summary.totalUnpaidBillsCount > 0 && (
-                <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full">
-                  {summary.totalUnpaidBillsCount} kutilmoqda
+                <span className="text-[10px] bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200 font-bold px-1.5 py-0.2 rounded-full">
+                  {summary.totalUnpaidBillsCount}
                 </span>
               )}
             </div>
-            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900">
-              {formatUZS(summary.totalUtilities)}
+            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+              {formatCurrency(summary.totalUtilities)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{utilities.filter(u => u.month === currentMonth).length} ta hisob</div>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+              {utilities.filter((u) => u.month === currentMonth).length} ta
+            </div>
           </button>
 
           <button
             onClick={() => handleSubTabChange('mandatory')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
+            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
               activeSubTab === 'mandatory'
-                ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-500/20'
-                : 'bg-white border-slate-200/90 hover:border-slate-300'
+                ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-400 ring-2 ring-blue-500/20'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
             }`}
           >
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-              <span>Soliq va majburiy</span>
+              <span>{t('pillar_mandatory')}</span>
             </div>
-            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900">
-              {formatUZS(summary.totalMandatory)}
+            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+              {formatCurrency(summary.totalMandatory)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">{mandatoryPayments.filter(m => m.month === currentMonth).length} ta toʻlov</div>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+              {mandatoryPayments.filter((m) => m.month === currentMonth).length} ta
+            </div>
           </button>
 
           <button
             onClick={() => handleSubTabChange('analytics')}
-            className={`p-3.5 rounded-xl border text-left transition-all ${
+            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
               activeSubTab === 'analytics'
-                ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20'
-                : 'bg-white border-slate-200/90 hover:border-slate-300'
+                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-400 ring-2 ring-indigo-500/20'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
             }`}
           >
-            <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <PieChart className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Xarajatlar tahlili</span>
+              <span>{t('monthly_allocation')}</span>
             </div>
-            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900">
-              Hisobotlar
+            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+              Tahlil
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5">Kategoriya & taqsimot</div>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Taqsimot</div>
           </button>
         </div>
       </div>
 
       {/* Sub-Navigation Tabs */}
-      <div className="flex items-center gap-1.5 border-b border-slate-200 pb-2 overflow-x-auto">
+      <div className="flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto">
         <button
           onClick={() => handleSubTabChange('everyday')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'everyday'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <Receipt className="w-3.5 h-3.5" />
-          <span>Kundalik xarajatlar ({monthExpenses.length})</span>
+          <span>Kundalik ({monthExpenses.length})</span>
         </button>
 
         <button
           onClick={() => handleSubTabChange('utilities')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'utilities'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          <span>Kommunal toʻlovlar</span>
+          <span>Kommunal</span>
           {summary.totalUnpaidBillsCount > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 text-[10px] font-bold">
               {summary.totalUnpaidBillsCount}
             </span>
           )}
@@ -285,26 +285,26 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
         <button
           onClick={() => handleSubTabChange('mandatory')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'mandatory'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Soliq va majburiy</span>
+          <span>{t('pillar_mandatory')}</span>
         </button>
 
         <button
           onClick={() => handleSubTabChange('analytics')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+          className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'analytics'
-              ? 'bg-slate-900 text-white shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100'
+              ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
           <PieChart className="w-3.5 h-3.5" />
-          <span>Tahliliy hisobotlar</span>
+          <span>Tahlil</span>
         </button>
       </div>
 
@@ -312,69 +312,61 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
       {activeSubTab === 'everyday' && (
         <div className="space-y-6">
           {/* Family Member Filter Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0 mr-1">
-              <Users className="w-3.5 h-3.5" />
-              <span>A'zo bo'yicha:</span>
-            </span>
-            <button
-              onClick={() => setSelectedMemberFilter('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                selectedMemberFilter === 'all'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              Barchasi ({monthExpenses.length})
-            </button>
-            {activeFamilyMembers.map((member) => {
-              const memberCount = monthExpenses.filter((e) => e.memberId === member.id).length;
-              const isSelected = selectedMemberFilter === member.id;
-              return (
-                <button
-                  key={member.id}
-                  onClick={() => setSelectedMemberFilter(member.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-rose-600 text-white shadow-2xs'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <span>{member.avatarEmoji || '👤'}</span>
-                  <span>{member.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-rose-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                    {memberCount}
-                  </span>
-                </button>
-              );
-            })}
-            <button
-              onClick={() => setSelectedMemberFilter('family')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
-                selectedMemberFilter === 'family'
-                  ? 'bg-indigo-600 text-white shadow-2xs'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <span>👥</span>
-              <span>Umumiy oila</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedMemberFilter === 'family' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                {monthExpenses.filter((e) => !e.memberId).length}
+          {familyMembers.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0 mr-1">
+                <Users className="w-3.5 h-3.5" />
+                <span>{t('family_title')}:</span>
               </span>
-            </button>
-          </div>
+              <button
+                onClick={() => setSelectedMemberFilter('all')}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  selectedMemberFilter === 'all'
+                    ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                }`}
+              >
+                {t('family_all')} ({monthExpenses.length})
+              </button>
+              {activeFamilyMembers.map((member) => {
+                const memberCount = monthExpenses.filter((e) => e.memberId === member.id).length;
+                const isSelected = selectedMemberFilter === member.id;
+                return (
+                  <button
+                    key={member.id}
+                    onClick={() => setSelectedMemberFilter(member.id)}
+                    className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-rose-600 text-white shadow-2xs'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <span>{member.avatarEmoji || '👤'}</span>
+                    <span>{member.name}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        isSelected ? 'bg-rose-700 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      {memberCount}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Category Filter Pills */}
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setFilterCategory('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 filterCategory === 'all'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
-              Barchasi ({memberFilteredExpenses.length})
+              {t('family_all')} ({memberFilteredExpenses.length})
             </button>
             {Object.entries(EXPENSE_CATEGORY_LABELS).map(([catKey, { label }]) => {
               const count = memberFilteredExpenses.filter((e) => e.category === catKey).length;
@@ -383,10 +375,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                 <button
                   key={catKey}
                   onClick={() => setFilterCategory(catKey)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                     filterCategory === catKey
-                      ? 'bg-slate-900 text-white shadow-2xs'
-                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <span>{label}</span>
@@ -397,10 +389,10 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
           </div>
 
           {/* Everyday Expenses List */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">
-                Xarajatlar roʻyxati ({filteredExpenses.length} ta)
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {t('nav_expenses')} ({filteredExpenses.length})
               </h3>
               {(filterCategory !== 'all' || selectedMemberFilter !== 'all') && (
                 <button
@@ -408,21 +400,27 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                     setFilterCategory('all');
                     setSelectedMemberFilter('all');
                   }}
-                  className="text-xs font-semibold text-rose-600 hover:underline"
+                  className="text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
                 >
-                  Filtrlarni tozalash
+                  Filtrni tozalash
                 </button>
               )}
             </div>
 
             {filteredExpenses.length === 0 ? (
-              <div className="py-12 text-center text-slate-400">
-                <Receipt className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                <p className="text-sm font-medium text-slate-600">Bu parametr boʻyicha xarajatlar yoʻq</p>
-                <p className="text-xs text-slate-400 mt-1">«Xarajat qoʻshish» tugmasi orqali yangi yozuv kiriting</p>
+              <div className="py-12 text-center text-slate-400 dark:text-slate-500">
+                <Receipt className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('expenses_empty')}</p>
+                <button
+                  onClick={() => openModal('expense')}
+                  className="mt-3 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('btn_add_expense')}</span>
+                </button>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredExpenses.map((exp) => {
                   const catMeta = EXPENSE_CATEGORY_LABELS[exp.category] || { label: exp.category };
                   const isEditing = editingId === exp.id;
@@ -432,26 +430,26 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
                   if (isEditing) {
                     return (
-                      <div key={exp.id} className="p-4 bg-rose-50/40 space-y-3">
+                      <div key={exp.id} className="p-4 bg-rose-50/40 dark:bg-rose-950/20 space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                           <input
                             type="text"
                             value={editDesc}
                             onChange={(e) => setEditDesc(e.target.value)}
                             placeholder="Tavsif"
-                            className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
+                            className="px-3.5 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none"
                           />
                           <input
                             type="text"
                             value={editAmountStr}
                             onChange={(e) => setEditAmountStr(e.target.value)}
                             placeholder="Summa"
-                            className="px-3 py-1.5 text-sm font-semibold bg-white rounded-lg border border-slate-300 focus:outline-none"
+                            className="px-3.5 py-2 text-sm font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none"
                           />
                           <select
                             value={editCategory}
                             onChange={(e) => setEditCategory(e.target.value as ExpenseCategory)}
-                            className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
+                            className="px-3.5 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none"
                           >
                             {Object.entries(EXPENSE_CATEGORY_LABELS).map(([k, v]) => (
                               <option key={k} value={k}>
@@ -462,9 +460,9 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                           <select
                             value={editMemberId}
                             onChange={(e) => setEditMemberId(e.target.value)}
-                            className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none font-medium"
+                            className="px-3.5 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none font-medium"
                           >
-                            <option value="family">👥 Umumiy oilaviy xarajat</option>
+                            <option value="family">👥 {t('family_title')}</option>
                             {activeFamilyMembers.map((m) => (
                               <option key={m.id} value={m.id}>
                                 {m.avatarEmoji || '👤'} {m.name}
@@ -478,11 +476,11 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                             type="date"
                             value={editDate}
                             onChange={(e) => setEditDate(e.target.value)}
-                            className="px-3 py-1.5 text-sm bg-white rounded-lg border border-slate-300 focus:outline-none"
+                            className="px-3.5 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl border border-slate-300 dark:border-slate-700 focus:outline-none"
                           />
 
                           <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                            <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={editEssential}
@@ -495,16 +493,16 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={cancelEdit}
-                                className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50"
+                                className="min-h-[40px] px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
                               >
-                                Bekor qilish
+                                {t('btn_cancel')}
                               </button>
                               <button
                                 onClick={() => saveEdit(exp.id)}
-                                className="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 rounded-lg hover:bg-rose-700 flex items-center gap-1"
+                                className="min-h-[40px] px-4 py-1.5 text-xs font-semibold text-white bg-rose-600 rounded-xl hover:bg-rose-700 flex items-center gap-1 cursor-pointer"
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Saqlash</span>
+                                <span>{t('btn_save')}</span>
                               </button>
                             </div>
                           </div>
@@ -516,43 +514,37 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
                   return (
                     <div
                       key={exp.id}
-                      className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 transition-colors"
+                      className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-slate-50/80 dark:hover:bg-slate-850/60 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                          <Receipt className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                          <Receipt className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <h4 className="font-bold text-sm text-slate-900">{exp.description}</h4>
-                            {/* Member badge */}
+                            <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-slate-100">{exp.description}</h4>
                             {assignedMember ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-800 border border-rose-200">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
                                 <span>{assignedMember.avatarEmoji || '👤'}</span>
                                 <span>{assignedMember.name}</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-800 border border-indigo-200">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                                 <Users className="w-2.5 h-2.5" />
-                                <span>Umumiy oila</span>
+                                <span>{t('family_title')}</span>
                               </span>
                             )}
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700">
                               {catMeta.label}
                             </span>
-                            {exp.isEssential && (
-                              <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                                Zaruriy
-                              </span>
-                            )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                          <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
                             <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {formatUzbekDate(exp.date)}
+                              <Calendar className="w-3 h-3 text-slate-400" />
+                              {formatDate(exp.date)}
                             </span>
                             {exp.isRecurring && (
-                              <span className="flex items-center gap-1 text-indigo-600">
+                              <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
                                 <Repeat className="w-3 h-3" />
                                 Doimiy
                               </span>
@@ -563,22 +555,24 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <div className="text-base font-extrabold text-slate-900">
-                            {formatUZS(exp.amount)}
+                          <div className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-slate-100">
+                            {formatCurrency(exp.amount)}
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => startEdit(exp)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                            title="Tahrirlash"
+                            className="min-h-[40px] min-w-[40px] p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+                            title={t('btn_edit')}
+                            aria-label={t('btn_edit')}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => deleteExpense(exp.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                            title="Oʻchirish"
+                            className="min-h-[40px] min-w-[40px] p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center justify-center cursor-pointer transition-colors"
+                            title={t('btn_delete')}
+                            aria-label={t('btn_delete')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -602,32 +596,31 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
       {/* TAB: EXPENSES ANALYTICS & REPORTS */}
       {activeSubTab === 'analytics' && (
         <div className="space-y-6">
-          {/* Outflow Breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Outflow Distribution Bars */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-2xs">
-              <h3 className="text-base font-bold text-slate-900 mb-1">
-                Chiqimlar oqimi taqsimoti
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
+                {t('monthly_allocation')}
               </h3>
-              <p className="text-xs text-slate-500 mb-6">
-                Barcha sarf-xarajatlarning umumiy chiqimdagi foiz ulushi
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                {t('monthly_balance_desc')}
               </p>
 
               <div className="space-y-5">
                 {/* Everyday expenses */}
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1.5">
+                  <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     <span className="flex items-center gap-1.5">
                       <Receipt className="w-3.5 h-3.5 text-rose-500" />
-                      Kundalik xarajatlar
+                      {t('pillar_expenses')}
                     </span>
                     <span>
-                      {formatUZS(totalMonthlyEveryday)} (
+                      {formatCurrency(totalMonthlyEveryday)} (
                       {totalAllOutflows > 0 ? Math.round((totalMonthlyEveryday / totalAllOutflows) * 100) : 0}
                       %)
                     </span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     <div
                       style={{
                         width: `${totalAllOutflows > 0 ? (totalMonthlyEveryday / totalAllOutflows) * 100 : 0}%`,
@@ -639,18 +632,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
                 {/* Utilities */}
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1.5">
+                  <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     <span className="flex items-center gap-1.5">
                       <Zap className="w-3.5 h-3.5 text-amber-500" />
-                      Kommunal toʻlovlar
+                      Kommunal
                     </span>
                     <span>
-                      {formatUZS(summary.totalUtilities)} (
+                      {formatCurrency(summary.totalUtilities)} (
                       {totalAllOutflows > 0 ? Math.round((summary.totalUtilities / totalAllOutflows) * 100) : 0}
                       %)
                     </span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     <div
                       style={{
                         width: `${totalAllOutflows > 0 ? (summary.totalUtilities / totalAllOutflows) * 100 : 0}%`,
@@ -662,18 +655,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
                 {/* Mandatory */}
                 <div>
-                  <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1.5">
+                  <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                     <span className="flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
-                      Soliq va majburiy toʻlovlar
+                      {t('pillar_mandatory')}
                     </span>
                     <span>
-                      {formatUZS(summary.totalMandatory)} (
+                      {formatCurrency(summary.totalMandatory)} (
                       {totalAllOutflows > 0 ? Math.round((summary.totalMandatory / totalAllOutflows) * 100) : 0}
                       %)
                     </span>
                   </div>
-                  <div className="w-full h-3 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     <div
                       style={{
                         width: `${totalAllOutflows > 0 ? (summary.totalMandatory / totalAllOutflows) * 100 : 0}%`,
@@ -686,17 +679,17 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
             </div>
 
             {/* Everyday Categories Breakdown */}
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-2xs">
-              <h3 className="text-base font-bold text-slate-900 mb-1">
-                Kundalik toifalar boʻyicha
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xs">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 mb-1">
+                Kategoriyalar boʻyicha
               </h3>
-              <p className="text-xs text-slate-500 mb-6">
-                Qaysi sohalarga eng koʻp pul sarflanayotgani
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                Chiqimlarning taqsimoti
               </p>
 
               {sortedCategoryTotals.length === 0 ? (
-                <div className="py-8 text-center text-slate-400 text-xs">
-                  Kundalik xarajatlar hali kiritilmagan
+                <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-xs">
+                  {t('expenses_empty')}
                 </div>
               ) : (
                 <div className="space-y-3.5">
@@ -706,13 +699,13 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
                     return (
                       <div key={catKey}>
-                        <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
+                        <div className="flex justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                           <span>{meta.label}</span>
-                          <span className="text-slate-900">
-                            {formatUZS(amount)} ({percent}%)
+                          <span className="text-slate-900 dark:text-slate-100">
+                            {formatCurrency(amount)} ({percent}%)
                           </span>
                         </div>
-                        <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="w-full h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                           <div
                             style={{ width: `${percent}%` }}
                             className="h-full bg-rose-500 rounded-full"

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck } from 'lucide-react';
 import { useFinance } from '../../context/FinanceContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { MandatoryCategory } from '../../types';
-import { MANDATORY_CATEGORY_LABELS, formatUZS } from '../../utils/formatters';
+import { MANDATORY_CATEGORY_LABELS } from '../../utils/formatters';
 
 export const AddMandatoryModal: React.FC = () => {
   const { activeModal, closeModal, addMandatory, currentMonth } = useFinance();
+  const { t, formatCurrency } = useLanguage();
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<MandatoryCategory>('tax');
@@ -41,18 +43,19 @@ export const AddMandatoryModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4" />
             </div>
-            <h2 className="text-base font-bold text-slate-900">Soliq yoki majburiy toʻlov qoʻshish</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">{t('pillar_mandatory')}</h2>
           </div>
           <button
             onClick={closeModal}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+            className="min-h-[36px] min-w-[36px] p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+            aria-label={t('btn_cancel')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -60,39 +63,22 @@ export const AddMandatoryModal: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Toʻlov nomi <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
-              placeholder="Masalan: Jismoniy shaxs daromad soligʻi, Avto sugʻurta, Kredit"
+              placeholder="Masalan: Daromad soligʻi, Yer soligʻi, Bolalar bogʻchasi toʻlovi"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Toʻlov toifasi
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as MandatoryCategory)}
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 bg-white"
-              >
-                {Object.entries(MANDATORY_CATEGORY_LABELS).map(([catKey, { label }]) => (
-                  <option key={catKey} value={catKey}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Summa (soʻmda) <span className="text-rose-500">*</span>
               </label>
               <input
@@ -104,91 +90,99 @@ export const AddMandatoryModal: React.FC = () => {
                   const val = e.target.value.replace(/[^\d]/g, '');
                   setAmountStr(val ? parseInt(val, 10).toLocaleString('ru-RU') : '');
                 }}
-                className="w-full px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
               />
               {rawAmount > 0 && (
-                <p className="mt-1 text-[11px] text-blue-700 font-medium">
-                  {formatUZS(rawAmount)}
+                <p className="mt-1 text-[11px] text-blue-600 dark:text-blue-400 font-medium">
+                  {formatCurrency(rawAmount)}
                 </p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Kategoriya
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as MandatoryCategory)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+              >
+                {Object.entries(MANDATORY_CATEGORY_LABELS).map(([k, meta]) => (
+                  <option key={k} value={k}>
+                    {meta.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Hisob oyi (YYYY-MM)
-              </label>
-              <input
-                type="month"
-                required
-                value={month}
-                onChange={(e) => {
-                  setMonth(e.target.value);
-                  setDueDate(`${e.target.value}-20`);
-                }}
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Toʻlov oxirgi sanasi
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Toʻlov muddati
               </label>
               <input
                 type="date"
                 required
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Qaysi oy uchun
+              </label>
+              <input
+                type="month"
+                required
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Izoh (ixtiyoriy)
             </label>
             <input
               type="text"
-              placeholder="Masalan: Yillik sugʻurta polis raqami yoki soliq deklaratsiyasi"
+              placeholder="Masalan: Yillik toʻlov kvitansiyasi boʻyicha"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+              className="w-full min-h-[44px] px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
             />
           </div>
 
           <div className="pt-2">
-            <label className="relative flex items-center gap-2.5 cursor-pointer select-none p-3 rounded-xl border border-slate-200 hover:bg-slate-50">
+            <label className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={isPaid}
                 onChange={(e) => setIsPaid(e.target.checked)}
-                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
               />
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Bu toʻlov allaqachon toʻlangan</span>
-                <span className="text-[11px] text-slate-500 block">
-                  Majburiy toʻlovlar xavfsiz sarflash hisobida eng birinchi navbatda chegiriladi
-                </span>
-              </div>
+              <span>Ushbu toʻlov toʻlangan (arxivlash)</span>
             </label>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
+              className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
             >
-              Bekor qilish
+              {t('btn_cancel')}
             </button>
             <button
               type="submit"
-              disabled={rawAmount <= 0 || !name.trim()}
-              className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs transition-colors"
+              className="min-h-[44px] px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer"
             >
-              Saqlash
+              {t('btn_save')}
             </button>
           </div>
         </form>

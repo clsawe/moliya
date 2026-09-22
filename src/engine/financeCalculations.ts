@@ -9,6 +9,8 @@ import {
   FamilyMember,
   MemberFinanceSummary,
   FamilyFinanceSummary,
+  Account,
+  Transfer,
 } from '../types';
 
 /**
@@ -468,5 +470,44 @@ export function calculateFamilySummary(
     unassignedExpenses,
     memberBreakdown,
   };
+}
+
+/**
+ * Calculates current balance for an account:
+ * Opening balance + Account Incomes - Account Expenses + Incoming Transfers - Outgoing Transfers.
+ * Transfers are NOT counted as income or expense in overall stats.
+ */
+export function calculateAccountBalance(
+  account: Account,
+  incomes: Income[],
+  expenses: Expense[],
+  transfers: Transfer[]
+): number {
+  const accIncomes = incomes
+    .filter((i) => i.accountId === account.id)
+    .reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
+  const accExpenses = expenses
+    .filter((e) => e.accountId === account.id)
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const inTransfers = transfers
+    .filter((t) => t.toAccountId === account.id)
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const outTransfers = transfers
+    .filter((t) => t.fromAccountId === account.id)
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  return (Number(account.openingBalance) || 0) + accIncomes - accExpenses + inTransfers - outTransfers;
+}
+
+export function calculateTotalAssets(
+  accounts: Account[],
+  incomes: Income[],
+  expenses: Expense[],
+  transfers: Transfer[]
+): number {
+  return accounts.reduce(
+    (sum, acc) => sum + calculateAccountBalance(acc, incomes, expenses, transfers),
+    0
+  );
 }
 
