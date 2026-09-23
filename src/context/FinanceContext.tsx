@@ -19,17 +19,20 @@ import {
   MemberFinanceSummary,
   Account,
   Transfer,
+  RecurringExpense,
 } from '../types';
 import {
   INITIAL_MONTH,
   INITIAL_INCOMES,
   INITIAL_EXPENSES,
+  INITIAL_RECURRING_EXPENSES,
   INITIAL_UTILITIES,
   INITIAL_MANDATORY,
   INITIAL_GOALS,
   INITIAL_TAX_PROFILE,
   INITIAL_FAMILY,
   INITIAL_FAMILY_MEMBERS,
+  STANDARD_FAMILY_GROUPS,
   INITIAL_ACCOUNTS,
   INITIAL_TRANSFERS,
   DEMO_FAMILY,
@@ -58,14 +61,15 @@ import { formatUzbekDate } from '../utils/formatters';
 interface FinanceContextType {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
-  expensesSubTab: 'everyday' | 'utilities' | 'mandatory' | 'analytics';
-  setExpensesSubTab: (tab: 'everyday' | 'utilities' | 'mandatory' | 'analytics') => void;
+  expensesSubTab: 'everyday' | 'recurring' | 'utilities' | 'mandatory' | 'analytics';
+  setExpensesSubTab: (tab: 'everyday' | 'recurring' | 'utilities' | 'mandatory' | 'analytics') => void;
   currentMonth: string;
   setCurrentMonth: (month: string) => void;
   
   // Data
   incomes: Income[];
   expenses: Expense[];
+  recurringExpenses: RecurringExpense[];
   utilities: UtilityBill[];
   mandatoryPayments: MandatoryPayment[];
   goals: FinancialGoal[];
@@ -111,6 +115,11 @@ interface FinanceContextType {
   updateExpense: (id: string, updates: Partial<Expense>) => void;
   deleteExpense: (id: string) => void;
 
+  addRecurringExpense: (expense: Omit<RecurringExpense, 'id' | 'createdAt'>) => RecurringExpense;
+  updateRecurringExpense: (id: string, updates: Partial<RecurringExpense>) => void;
+  deleteRecurringExpense: (id: string) => void;
+  toggleRecurringExpenseActive: (id: string) => void;
+
   addUtility: (utility: Omit<UtilityBill, 'id'>) => void;
   updateUtility: (id: string, updates: Partial<UtilityBill>) => void;
   deleteUtility: (id: string) => void;
@@ -154,6 +163,7 @@ interface FinanceContextType {
 const STORAGE_KEYS = {
   INCOMES: 'moliya_incomes_v1',
   EXPENSES: 'moliya_expenses_v1',
+  RECURRING_EXPENSES: 'moliya_recurring_expenses_v1',
   UTILITIES: 'moliya_utilities_v1',
   MANDATORY: 'moliya_mandatory_v1',
   GOALS: 'moliya_goals_v1',
@@ -172,14 +182,14 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [expensesSubTab, setExpensesSubTab] = useState<'everyday' | 'utilities' | 'mandatory' | 'analytics'>(() => {
+  const [expensesSubTab, setExpensesSubTab] = useState<'everyday' | 'recurring' | 'utilities' | 'mandatory' | 'analytics'>(() => {
     return (localStorage.getItem(STORAGE_KEYS.EXPENSES_SUBTAB) as any) || 'everyday';
   });
   const [currentMonth, setCurrentMonthState] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEYS.CURRENT_MONTH) || INITIAL_MONTH;
   });
 
-  // Family & Members state with safe migration check
+  // Family & Members state with standard 3 groups (Ota, Ona, Bolalar)
   const [family, setFamily] = useState<Family>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.FAMILY);
@@ -193,11 +203,23 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.FAMILY_MEMBERS);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasIndividualOldNames = parsed.some(
+            (m: any) =>
+              m.name?.toLowerCase().includes('anvar') ||
+              m.name?.toLowerCase().includes('dilshod')
+          );
+          if (!hasIndividualOldNames) {
+            return parsed;
+          }
+        }
+      }
     } catch (e) {
       console.error('Error loading family members:', e);
     }
-    return INITIAL_FAMILY_MEMBERS;
+    return STANDARD_FAMILY_GROUPS;
   });
 
   const [incomes, setIncomes] = useState<Income[]>(() => {
@@ -214,6 +236,14 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (saved) return JSON.parse(saved);
     } catch {}
     return INITIAL_EXPENSES;
+  });
+
+  const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.RECURRING_EXPENSES);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return INITIAL_RECURRING_EXPENSES;
   });
 
   const [utilities, setUtilities] = useState<UtilityBill[]>(() => {
@@ -311,6 +341,10 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [mandatoryPayments]);
 
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.RECURRING_EXPENSES, JSON.stringify(recurringExpenses));
+  }, [recurringExpenses]);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals));
   }, [goals]);
 
@@ -338,18 +372,31 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     localStorage.setItem(STORAGE_KEYS.FAMILY_MEMBERS, JSON.stringify(familyMembers));
   }, [familyMembers]);
 
-  // Safe migration check to ensure existing data is preserved and new family structure initialized
+  // Migration check: ensure standard 3 groups (Ota, Ona, Bolalar) exist and schema updated
   useEffect(() => {
     try {
       const version = localStorage.getItem(STORAGE_KEYS.SCHEMA_VERSION);
-      if (!version || parseInt(version, 10) < 2) {
+      if (!version || parseInt(version, 10) < 3) {
         if (!localStorage.getItem(STORAGE_KEYS.FAMILY)) {
           localStorage.setItem(STORAGE_KEYS.FAMILY, JSON.stringify(INITIAL_FAMILY));
         }
-        if (!localStorage.getItem(STORAGE_KEYS.FAMILY_MEMBERS)) {
-          localStorage.setItem(STORAGE_KEYS.FAMILY_MEMBERS, JSON.stringify(INITIAL_FAMILY_MEMBERS));
+        const existingMembersStr = localStorage.getItem(STORAGE_KEYS.FAMILY_MEMBERS);
+        if (!existingMembersStr) {
+          localStorage.setItem(STORAGE_KEYS.FAMILY_MEMBERS, JSON.stringify(STANDARD_FAMILY_GROUPS));
+          setFamilyMembers(STANDARD_FAMILY_GROUPS);
+        } else {
+          try {
+            const parsed = JSON.parse(existingMembersStr);
+            const hasIndividualOldNames = Array.isArray(parsed) && parsed.some(
+              (m: any) => m.name?.toLowerCase().includes('anvar') || m.name?.toLowerCase().includes('dilshod')
+            );
+            if (hasIndividualOldNames || parsed.length === 0) {
+              localStorage.setItem(STORAGE_KEYS.FAMILY_MEMBERS, JSON.stringify(STANDARD_FAMILY_GROUPS));
+              setFamilyMembers(STANDARD_FAMILY_GROUPS);
+            }
+          } catch {}
         }
-        localStorage.setItem(STORAGE_KEYS.SCHEMA_VERSION, '2');
+        localStorage.setItem(STORAGE_KEYS.SCHEMA_VERSION, '3');
       }
     } catch (err) {
       console.error('Migration error:', err);
@@ -364,10 +411,19 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setCurrentMonthState(month);
   };
 
-  // Live recalculate summary
+  // Live recalculate summary with planned recurring expenses
   const summary = useMemo(() => {
-    return calculateMonthlySummary(currentMonth, incomes, expenses, utilities, mandatoryPayments, goals);
-  }, [currentMonth, incomes, expenses, utilities, mandatoryPayments, goals]);
+    return calculateMonthlySummary(
+      currentMonth,
+      incomes,
+      expenses,
+      utilities,
+      mandatoryPayments,
+      goals,
+      undefined,
+      recurringExpenses
+    );
+  }, [currentMonth, incomes, expenses, utilities, mandatoryPayments, goals, recurringExpenses]);
 
   // Live recalculate family summary with member breakdown
   const familySummary = useMemo(() => {
@@ -648,6 +704,42 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     setExpenses((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // CRUD Recurring Expenses
+  const addRecurringExpense = (expense: Omit<RecurringExpense, 'id' | 'createdAt'>): RecurringExpense => {
+    const newRecord: RecurringExpense = {
+      ...expense,
+      id: `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      amount: Math.round(Number(expense.amount) || 0),
+      createdAt: new Date().toISOString(),
+    };
+    setRecurringExpenses((prev) => [newRecord, ...prev]);
+    return newRecord;
+  };
+
+  const updateRecurringExpense = (id: string, updates: Partial<RecurringExpense>) => {
+    setRecurringExpenses((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              ...updates,
+              amount: updates.amount !== undefined ? Math.round(Number(updates.amount)) : item.amount,
+            }
+          : item
+      )
+    );
+  };
+
+  const deleteRecurringExpense = (id: string) => {
+    setRecurringExpenses((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const toggleRecurringExpenseActive = (id: string) => {
+    setRecurringExpenses((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, isActive: !item.isActive } : item))
+    );
+  };
+
   // CRUD Utilities
   const addUtility = (utility: Omit<UtilityBill, 'id'>) => {
     const newRecord: UtilityBill = {
@@ -869,9 +961,10 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const clearAllData = () => {
     setFamily(INITIAL_FAMILY);
-    setFamilyMembers([]);
+    setFamilyMembers(STANDARD_FAMILY_GROUPS);
     setIncomes([]);
     setExpenses([]);
+    setRecurringExpenses([]);
     setUtilities([]);
     setMandatoryPayments([]);
     setGoals([]);
@@ -894,6 +987,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       transfers,
       incomes,
       expenses,
+      recurringExpenses,
       utilities,
       mandatoryPayments,
       goals,
@@ -913,6 +1007,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (parsed.transfers && Array.isArray(parsed.transfers)) setTransfers(parsed.transfers);
       if (parsed.incomes && Array.isArray(parsed.incomes)) setIncomes(parsed.incomes);
       if (parsed.expenses && Array.isArray(parsed.expenses)) setExpenses(parsed.expenses);
+      if (parsed.recurringExpenses && Array.isArray(parsed.recurringExpenses)) setRecurringExpenses(parsed.recurringExpenses);
       if (parsed.utilities && Array.isArray(parsed.utilities)) setUtilities(parsed.utilities);
       if (parsed.mandatoryPayments && Array.isArray(parsed.mandatoryPayments)) setMandatoryPayments(parsed.mandatoryPayments);
       if (parsed.goals && Array.isArray(parsed.goals)) setGoals(parsed.goals);
@@ -945,6 +1040,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         setCurrentMonth,
         incomes,
         expenses,
+        recurringExpenses,
         utilities,
         mandatoryPayments,
         goals,
@@ -983,6 +1079,10 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         addExpense,
         updateExpense,
         deleteExpense,
+        addRecurringExpense,
+        updateRecurringExpense,
+        deleteRecurringExpense,
+        toggleRecurringExpenseActive,
         addUtility,
         updateUtility,
         deleteUtility,

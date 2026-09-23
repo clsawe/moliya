@@ -9,15 +9,48 @@ import {
   FamilyMember,
   Account,
   Transfer,
+  RecurringExpense,
 } from '../types';
 
 export const INITIAL_MONTH = '2026-09';
 export const PREVIOUS_MONTH = '2026-08';
 
 /**
- * Clean Initial State for New Users
- * Empty family members, empty transactions, empty goals, empty accounts.
+ * Standard 3 Family Groups
+ * 1. Ota
+ * 2. Ona
+ * 3. Bolalar
  */
+export const STANDARD_FAMILY_GROUPS: FamilyMember[] = [
+  {
+    id: 'mem-ota',
+    familyId: 'fam-default',
+    name: 'Ota',
+    role: 'Owner',
+    avatarEmoji: '👨',
+    active: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'mem-ona',
+    familyId: 'fam-default',
+    name: 'Ona',
+    role: 'Adult',
+    avatarEmoji: '👩',
+    active: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'mem-bolalar',
+    familyId: 'fam-default',
+    name: 'Bolalar',
+    role: 'Child',
+    avatarEmoji: '🧒',
+    active: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+];
+
 export const INITIAL_FAMILY: Family = {
   id: 'fam-default',
   name: 'Mening oilam',
@@ -26,9 +59,10 @@ export const INITIAL_FAMILY: Family = {
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
 
-export const INITIAL_FAMILY_MEMBERS: FamilyMember[] = [];
+export const INITIAL_FAMILY_MEMBERS: FamilyMember[] = STANDARD_FAMILY_GROUPS;
 export const INITIAL_INCOMES: Income[] = [];
 export const INITIAL_EXPENSES: Expense[] = [];
+export const INITIAL_RECURRING_EXPENSES: RecurringExpense[] = [];
 export const INITIAL_UTILITIES: UtilityBill[] = [];
 export const INITIAL_MANDATORY: MandatoryPayment[] = [];
 export const INITIAL_GOALS: FinancialGoal[] = [];
@@ -64,24 +98,7 @@ export const DEMO_FAMILY: Family = {
   updatedAt: '2026-09-01T00:00:00.000Z',
 };
 
-export const DEMO_FAMILY_MEMBERS: FamilyMember[] = [
-  {
-    id: 'mem-1',
-    familyId: 'fam-default',
-    name: 'Ota',
-    role: 'Owner',
-    active: true,
-    createdAt: '2026-09-01T00:00:00.000Z',
-  },
-  {
-    id: 'mem-2',
-    familyId: 'fam-default',
-    name: 'Ona',
-    role: 'Adult',
-    active: true,
-    createdAt: '2026-09-01T00:00:00.000Z',
-  },
-];
+export const DEMO_FAMILY_MEMBERS: FamilyMember[] = STANDARD_FAMILY_GROUPS;
 
 export const DEMO_ACCOUNTS: Account[] = [
   {

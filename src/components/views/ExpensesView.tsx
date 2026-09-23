@@ -18,14 +18,16 @@ import { ExpenseCategory, Expense } from '../../types';
 import { EXPENSE_CATEGORY_LABELS } from '../../utils/formatters';
 import { UtilitiesView } from './UtilitiesView';
 import { TaxesMandatoryView } from './TaxesMandatoryView';
+import { RecurringExpensesView } from './RecurringExpensesView';
 
 interface ExpensesViewProps {
-  initialTab?: 'everyday' | 'utilities' | 'mandatory' | 'analytics';
+  initialTab?: 'everyday' | 'recurring' | 'utilities' | 'mandatory' | 'analytics';
 }
 
 export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyday' }) => {
   const {
     expenses,
+    recurringExpenses,
     updateExpense,
     deleteExpense,
     currentMonth,
@@ -41,7 +43,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
 
   const { t, formatCurrency, formatMonth, formatDate } = useLanguage();
 
-  const [activeSubTab, setActiveSubTab] = useState<'everyday' | 'utilities' | 'mandatory' | 'analytics'>(
+  const [activeSubTab, setActiveSubTab] = useState<'everyday' | 'recurring' | 'utilities' | 'mandatory' | 'analytics'>(
     expensesSubTab || initialTab
   );
 
@@ -51,7 +53,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
     }
   }, [expensesSubTab]);
 
-  const handleSubTabChange = (tab: 'everyday' | 'utilities' | 'mandatory' | 'analytics') => {
+  const handleSubTabChange = (tab: 'everyday' | 'recurring' | 'utilities' | 'mandatory' | 'analytics') => {
     setActiveSubTab(tab);
     setExpensesSubTab(tab);
   };
@@ -84,7 +86,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
   );
 
   const totalMonthlyEveryday = memberFilteredExpenses.reduce((acc, cur) => acc + cur.amount, 0);
-  const totalAllOutflows = totalMonthlyEveryday + summary.totalUtilities + summary.totalMandatory;
+  const totalPlannedRecurring = summary.plannedRecurringExpenses || 0;
+  const totalAllOutflows = totalMonthlyEveryday + totalPlannedRecurring + summary.totalUtilities + summary.totalMandatory;
 
   // Category totals for everyday
   const categoryTotals: Record<string, number> = {};
@@ -165,8 +168,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
           </div>
         </div>
 
-        {/* 4 Summary Stat Cards across all outflow categories */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* 5 Summary Stat Cards across all outflow categories */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <button
             onClick={() => handleSubTabChange('everyday')}
             className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
@@ -183,6 +186,24 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
               {formatCurrency(totalMonthlyEveryday)}
             </div>
             <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{monthExpenses.length} ta</div>
+          </button>
+
+          <button
+            onClick={() => handleSubTabChange('recurring')}
+            className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+              activeSubTab === 'recurring'
+                ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-400 ring-2 ring-purple-500/20'
+                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+            }`}
+          >
+            <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Repeat className="w-3.5 h-3.5 text-purple-500" />
+              <span>Takrorlanuvchi</span>
+            </div>
+            <div className="mt-1 text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+              {formatCurrency(totalPlannedRecurring)}
+            </div>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{recurringExpenses.length} ta reja</div>
           </button>
 
           <button
@@ -267,6 +288,18 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
         </button>
 
         <button
+          onClick={() => handleSubTabChange('recurring')}
+          className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+            activeSubTab === 'recurring'
+              ? 'bg-slate-900 dark:bg-emerald-600 text-white shadow-2xs'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Repeat className="w-3.5 h-3.5" />
+          <span>Takrorlanuvchi ({recurringExpenses.length})</span>
+        </button>
+
+        <button
           onClick={() => handleSubTabChange('utilities')}
           className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'utilities'
@@ -309,6 +342,8 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ initialTab = 'everyd
       </div>
 
       {/* TAB CONTENT */}
+      {activeSubTab === 'recurring' && <RecurringExpensesView />}
+
       {activeSubTab === 'everyday' && (
         <div className="space-y-6">
           {/* Family Member Filter Bar */}

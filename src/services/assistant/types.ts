@@ -2,12 +2,15 @@ export type AssistantActionType =
   | 'QUERY_BALANCE'
   | 'QUERY_SAFE_TO_SPEND'
   | 'ADD_EXPENSE'
+  | 'ADD_RECURRING_EXPENSE'
   | 'ADD_INCOME'
   | 'ADD_GOAL'
   | 'NAVIGATE'
   | 'DELETE_ITEM'
   | 'TRANSFER_FUNDS'
   | 'UNKNOWN';
+
+export type AssistantLanguage = 'uz' | 'ru' | 'en';
 
 export interface PendingAction {
   id: string;
@@ -43,6 +46,7 @@ export interface SpeechRecognitionAdapter {
   startListening: (onResult: (transcript: string) => void, onError: (err: string) => void) => void;
   stopListening: () => void;
   getLanguage?: () => string;
+  setLanguage?: (lang: 'uz-UZ' | 'ru-RU' | 'en-US') => void;
   getDiagnostics?: () => STTDiagnostics;
   requestMicrophonePermission?: () => Promise<boolean>;
 }
@@ -51,9 +55,13 @@ export interface SpeechSynthesisAdapter {
   isSupported: () => boolean;
   speak: (text: string, onNoVoice?: () => void) => void;
   stop: () => void;
+  setLanguage?: (lang: 'uz-UZ' | 'ru-RU' | 'en-US') => void;
   getDiagnostics?: () => {
     isSupported: boolean;
+    hasVoice: boolean;
     hasUzbekVoice: boolean;
+    hasVoiceForLanguage?: boolean;
+    currentLanguage?: string;
     selectedVoiceName: string | null;
     selectedVoiceLang: string | null;
     totalVoices: number;

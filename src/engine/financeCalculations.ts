@@ -11,6 +11,7 @@ import {
   FamilyFinanceSummary,
   Account,
   Transfer,
+  RecurringExpense,
 } from '../types';
 
 /**
@@ -22,6 +23,69 @@ export function getDaysInMonth(monthStr: string): number {
   const year = parseInt(yearStr, 10);
   const month = parseInt(monthNumStr, 10);
   return new Date(year, month, 0).getDate();
+}
+
+/**
+ * Calculates how many times a recurring expense occurs in a given month.
+ */
+export function calculateRecurringOccurrencesInMonth(item: RecurringExpense, monthStr: string): number {
+  if (!item.isActive) return 0;
+  const daysInMonth = getDaysInMonth(monthStr);
+  const startMonth = item.startDate ? item.startDate.substring(0, 7) : monthStr;
+  if (startMonth > monthStr) return 0; // Starts in future month
+
+  const startDay = startMonth === monthStr ? Math.min(daysInMonth, parseInt(item.startDate.split('-')[2] || '1', 10)) : 1;
+
+  switch (item.recurrenceType) {
+    case 'daily': {
+      return Math.max(0, daysInMonth - startDay + 1);
+    }
+    case 'weekly': {
+      const activeDays = Math.max(0, daysInMonth - startDay + 1);
+      return Math.max(1, Math.round(activeDays / 7));
+    }
+    case 'custom_weekdays': {
+      if (!item.selectedWeekdays || item.selectedWeekdays.length === 0) return 0;
+      let count = 0;
+      const [yearStr, monthNumStr] = monthStr.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthNumStr, 10) - 1;
+      for (let day = startDay; day <= daysInMonth; day++) {
+        const dateObj = new Date(year, month, day);
+        const jsDay = dateObj.getDay();
+        const isoDay = jsDay === 0 ? 7 : jsDay;
+        if (item.selectedWeekdays.includes(isoDay)) {
+          count++;
+        }
+      }
+      return count;
+    }
+    case 'monthly': {
+      return 1;
+    }
+    case 'specific_date': {
+      if (item.specificDate && item.specificDate.startsWith(monthStr)) {
+        return 1;
+      }
+      return 0;
+    }
+    default:
+      return 1;
+  }
+}
+
+/**
+ * Calculates total planned financial commitment from recurring expenses for a month.
+ */
+export function calculateMonthlyRecurringCommitment(
+  recurringExpenses: RecurringExpense[],
+  monthStr: string
+): number {
+  if (!recurringExpenses || recurringExpenses.length === 0) return 0;
+  return recurringExpenses.reduce((sum, item) => {
+    const occurrences = calculateRecurringOccurrencesInMonth(item, monthStr);
+    return sum + (item.amount * occurrences);
+  }, 0);
 }
 
 /**
@@ -62,7 +126,8 @@ export function calculateMonthlySummary(
   utilities: UtilityBill[],
   mandatory: MandatoryPayment[],
   goals: FinancialGoal[],
-  referenceDateStr?: string
+  referenceDateStr?: string,
+  recurringExpenses: RecurringExpense[] = []
 ): MonthlyFinancialSummary {
   // Filter items matching this month
   const monthIncomes = incomes.filter((item) => item.date.startsWith(monthStr));
@@ -70,6 +135,9 @@ export function calculateMonthlySummary(
   const monthUtilities = utilities.filter((item) => item.month === monthStr);
   const monthMandatory = mandatory.filter((item) => item.month === monthStr);
   
+  // Planned recurring expenses calculation for this month
+  const plannedRecurringExpenses = calculateMonthlyRecurringCommitment(recurringExpenses, monthStr);
+
   // Active goals targeting this month or active overall
   const activeGoalsThisMonth = goals.filter(
     (g) => g.status !== 'completed' && (g.targetMonth === monthStr || g.deadline.startsWith(monthStr))
@@ -131,6 +199,7 @@ export function calculateMonthlySummary(
     month: monthStr,
     totalIncome,
     totalExpenses,
+    plannedRecurringExpenses,
     totalUtilities,
     totalMandatory,
     actualPaidUtilities,

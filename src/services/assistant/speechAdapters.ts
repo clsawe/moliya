@@ -49,6 +49,11 @@ export class NativeSpeechRecognitionAdapter implements SpeechRecognitionAdapter 
     return this.currentLanguage;
   }
 
+  setLanguage(lang: string): void {
+    this.currentLanguage = lang;
+    this.logEvent('Language updated', lang);
+  }
+
   getDiagnostics(): STTDiagnostics {
     return {
       sttAvailable: this.isAvailable,
@@ -258,6 +263,14 @@ export class WebSpeechRecognitionAdapter implements SpeechRecognitionAdapter {
     return this.currentLanguage;
   }
 
+  setLanguage(lang: string): void {
+    this.currentLanguage = lang;
+    if (this.recognition) {
+      this.recognition.lang = lang;
+    }
+    this.logEvent('Language updated', lang);
+  }
+
   getDiagnostics(): STTDiagnostics {
     return {
       sttAvailable: this.isSupported(),
@@ -431,7 +444,8 @@ export function createSpeechRecognitionAdapter(): SpeechRecognitionAdapter {
 export class WebSpeechSynthesisAdapter implements SpeechSynthesisAdapter {
   private voices: SpeechSynthesisVoice[] = [];
   private selectedVoice: SpeechSynthesisVoice | null = null;
-  private hasUzbekVoice = false;
+  private currentLanguage = 'uz-UZ';
+  private hasVoiceForCurrentLang = false;
 
   constructor() {
     this.initVoices();
@@ -443,7 +457,7 @@ export class WebSpeechSynthesisAdapter implements SpeechSynthesisAdapter {
     const loadVoices = () => {
       try {
         this.voices = window.speechSynthesis.getVoices() || [];
-        this.findUzbekVoice();
+        this.resolveVoiceForLang();
       } catch {
         this.voices = [];
       }
@@ -455,40 +469,70 @@ export class WebSpeechSynthesisAdapter implements SpeechSynthesisAdapter {
     }
   }
 
-  private findUzbekVoice(): void {
+  setLanguage(lang: string): void {
+    this.currentLanguage = lang;
+    this.resolveVoiceForLang();
+  }
+
+  getLanguage(): string {
+    return this.currentLanguage;
+  }
+
+  private resolveVoiceForLang(): void {
     if (!this.voices || this.voices.length === 0) {
       this.selectedVoice = null;
-      this.hasUzbekVoice = false;
+      this.hasVoiceForCurrentLang = false;
       return;
     }
 
-    // Priority 1: exact match for uz-UZ or uz_UZ
-    let found = this.voices.find(
-      (v) => v.lang.toLowerCase() === 'uz-uz' || v.lang.toLowerCase() === 'uz_uz'
-    );
+    const langLower = this.currentLanguage.toLowerCase();
+    const prefix = langLower.split('-')[0];
 
-    // Priority 2: starts with 'uz'
-    if (!found) {
-      found = this.voices.find((v) => v.lang.toLowerCase().startsWith('uz'));
-    }
-
-    // Priority 3: name contains uzbek or oʻzbek
-    if (!found) {
-      found = this.voices.find(
-        (v) =>
-          v.name.toLowerCase().includes('uzbek') ||
-          v.name.toLowerCase().includes("o'zbek") ||
-          v.name.toLowerCase().includes('oʻzbek')
+    if (prefix === 'uz') {
+      // Uzbek: Strict! Never fallback to Russian or English
+      let found = this.voices.find(
+        (v) => v.lang.toLowerCase() === 'uz-uz' || v.lang.toLowerCase() === 'uz_uz'
       );
-    }
-
-    if (found) {
-      this.selectedVoice = found;
-      this.hasUzbekVoice = true;
+      if (!found) {
+        found = this.voices.find((v) => v.lang.toLowerCase().startsWith('uz'));
+      }
+      if (!found) {
+        found = this.voices.find(
+          (v) =>
+            v.name.toLowerCase().includes('uzbek') ||
+            v.name.toLowerCase().includes("o'zbek") ||
+            v.name.toLowerCase().includes('oʻzbek')
+        );
+      }
+      this.selectedVoice = found || null;
+      this.hasVoiceForCurrentLang = !!found;
+    } else if (prefix === 'ru') {
+      // Russian
+      let found = this.voices.find(
+        (v) => v.lang.toLowerCase() === 'ru-ru' || v.lang.toLowerCase() === 'ru_ru'
+      );
+      if (!found) {
+        found = this.voices.find((v) => v.lang.toLowerCase().startsWith('ru'));
+      }
+      if (!found) {
+        found = this.voices.find((v) => v.name.toLowerCase().includes('russian'));
+      }
+      this.selectedVoice = found || null;
+      this.hasVoiceForCurrentLang = !!found;
+    } else if (prefix === 'en') {
+      // English
+      let found = this.voices.find(
+        (v) => v.lang.toLowerCase() === 'en-us' || v.lang.toLowerCase() === 'en_us'
+      );
+      if (!found) {
+        found = this.voices.find((v) => v.lang.toLowerCase().startsWith('en'));
+      }
+      this.selectedVoice = found || null;
+      this.hasVoiceForCurrentLang = !!found;
     } else {
-      // STRICT: If no Uzbek voice exists, DO NOT fallback to Russian or English voice!
-      this.selectedVoice = null;
-      this.hasUzbekVoice = false;
+      let found = this.voices.find((v) => v.lang.toLowerCase().startsWith(prefix));
+      this.selectedVoice = found || null;
+      this.hasVoiceForCurrentLang = !!found;
     }
   }
 
@@ -498,23 +542,29 @@ export class WebSpeechSynthesisAdapter implements SpeechSynthesisAdapter {
 
   getDiagnostics(): {
     isSupported: boolean;
+    hasVoice: boolean;
     hasUzbekVoice: boolean;
+    hasVoiceForLanguage?: boolean;
     selectedVoiceName: string | null;
     selectedVoiceLang: string | null;
     totalVoices: number;
+    currentLanguage: string;
   } {
     if (this.voices.length === 0 && this.isSupported()) {
       try {
         this.voices = window.speechSynthesis.getVoices() || [];
-        this.findUzbekVoice();
+        this.resolveVoiceForLang();
       } catch {}
     }
     return {
       isSupported: this.isSupported(),
-      hasUzbekVoice: this.hasUzbekVoice,
+      hasVoice: this.hasVoiceForCurrentLang,
+      hasUzbekVoice: this.currentLanguage.startsWith('uz') ? this.hasVoiceForCurrentLang : false,
+      hasVoiceForLanguage: this.hasVoiceForCurrentLang,
       selectedVoiceName: this.selectedVoice ? this.selectedVoice.name : null,
       selectedVoiceLang: this.selectedVoice ? this.selectedVoice.lang : null,
       totalVoices: this.voices.length,
+      currentLanguage: this.currentLanguage,
     };
   }
 
@@ -527,8 +577,7 @@ export class WebSpeechSynthesisAdapter implements SpeechSynthesisAdapter {
       this.initVoices();
     }
 
-    // Strict rule: If Uzbek voice is not available, do NOT read with Russian voice!
-    if (!this.hasUzbekVoice || !this.selectedVoice) {
+    if (!this.hasVoiceForCurrentLang || !this.selectedVoice) {
       if (onNoVoice) {
         onNoVoice();
       }
@@ -538,7 +587,7 @@ export class WebSpeechSynthesisAdapter implements SpeechSynthesisAdapter {
     try {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.voice = this.selectedVoice;
-      utterance.lang = this.selectedVoice.lang;
+      utterance.lang = this.selectedVoice.lang || this.currentLanguage;
       // Natural cadence settings
       utterance.rate = 0.95;
       utterance.pitch = 1.0;

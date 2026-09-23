@@ -118,6 +118,29 @@ export interface Expense {
   accountId?: string;
 }
 
+export type RecurrenceType =
+  | 'daily'            // HAR KUNI
+  | 'weekly'           // HAFTALIK
+  | 'custom_weekdays'  // TANLANGAN HAFTA KUNLARI
+  | 'monthly'          // HAR OY
+  | 'specific_date';   // TANLANGAN SANA
+
+export interface RecurringExpense {
+  id: string;
+  name: string;
+  amount: number; // in UZS (integer)
+  category: ExpenseCategory;
+  memberId?: string | null; // Ota / Ona / Bolalar
+  startDate: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  recurrenceType: RecurrenceType;
+  selectedWeekdays?: number[]; // 1 = Dushanba, ..., 7 = Yakshanba
+  specificDate?: string; // YYYY-MM-DD for specific_date
+  isActive: boolean;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface UtilityBill {
   id: string;
   category: UtilityCategory;
@@ -238,6 +261,31 @@ export interface AppReminderNotification {
   timingTrigger: ReminderTiming | -1; // -1 for overdue
 }
 
+export type NotificationType =
+  | 'daily_plan' // 1. Bugungi reja
+  | 'goal_progress' // 2. Maqsad
+  | 'planned_expense' // 3. Rejalashtirilgan xarajat (takrorlanuvchi xarajat bugun)
+  | 'planned_payment'; // 4. Rejalashtirilgan to'lov (kommunal, soliq, majburiy)
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO string
+  isRead: boolean;
+  actionTab?: ActiveTab;
+  actionSubTab?: string;
+  meta?: {
+    amount?: number;
+    targetName?: string;
+    dueDate?: string;
+    remainingAmount?: number;
+    monthlyContribution?: number;
+  };
+}
+
 export interface UpcomingPaymentItem {
   id: string;
   type: 'tax' | 'utility' | 'goal';
@@ -274,6 +322,7 @@ export interface MonthlyFinancialSummary {
   month: string; // YYYY-MM
   totalIncome: number;
   totalExpenses: number;
+  plannedRecurringExpenses: number; // Planned/budgeted recurring commitments for this month
   totalUtilities: number; // Planned/budgeted total utility bills
   totalMandatory: number; // Planned/budgeted total mandatory payments
   actualPaidUtilities: number; // Confirmed paid utility payments only
@@ -336,7 +385,8 @@ export type ActiveTab =
   | 'goals'
   | 'goal-planner'
   | 'reports'
-  | 'settings';
+  | 'settings'
+  | 'notifications';
 
 export type AccountType = 'card' | 'cash' | 'bank' | 'other';
 
