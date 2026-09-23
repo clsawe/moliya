@@ -3,7 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  body {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
     margin: 0;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }

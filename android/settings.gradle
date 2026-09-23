@@ -1,0 +1,15 @@
+include ':app'
+
+// Explicitly register Capacitor core and plugin modules using settingsDir to avoid Windows relative path ambiguity
+include ':capacitor-android'
+project(':capacitor-android').projectDir = new File(settingsDir, '../node_modules/@capacitor/android/capacitor')
+
+include ':capacitor-app'
+project(':capacitor-app').projectDir = new File(settingsDir, '../node_modules/@capacitor/app/android')
+
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File(settingsDir, 'capacitor-cordova-android-plugins')
+
+if (new File(settingsDir, 'capacitor.settings.gradle').exists()) {
+    apply from: 'capacitor.settings.gradle'
+}

@@ -18,9 +18,13 @@ import { AddExpenseModal } from './components/modals/AddExpenseModal';
 import { AddUtilityModal } from './components/modals/AddUtilityModal';
 import { AddMandatoryModal } from './components/modals/AddMandatoryModal';
 import { AddGoalModal } from './components/modals/AddGoalModal';
+import { AssistantProvider, useAssistant } from './context/AssistantContext';
+import { FloatingVoiceButton } from './components/assistant/FloatingVoiceButton';
+import { AssistantModal } from './components/assistant/AssistantModal';
 
 const AppContent: React.FC = () => {
   const { activeTab, setActiveTab, activeModal, closeModal } = useFinance();
+  const { isOpen: assistantOpen, closeAssistant } = useAssistant();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Android hardware back button and keyboard ESC handling
@@ -28,6 +32,10 @@ const AppContent: React.FC = () => {
     let removeCapListener: (() => void) | undefined;
     try {
       const listenerPromise = CapApp.addListener('backButton', () => {
+        if (assistantOpen) {
+          closeAssistant();
+          return;
+        }
         if (activeModal) {
           closeModal();
           return;
@@ -50,7 +58,8 @@ const AppContent: React.FC = () => {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (activeModal) closeModal();
+        if (assistantOpen) closeAssistant();
+        else if (activeModal) closeModal();
         else if (mobileMenuOpen) setMobileMenuOpen(false);
       }
     };
@@ -60,18 +69,18 @@ const AppContent: React.FC = () => {
       if (removeCapListener) removeCapListener();
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [activeModal, closeModal, mobileMenuOpen, activeTab, setActiveTab]);
+  }, [assistantOpen, closeAssistant, activeModal, closeModal, mobileMenuOpen, activeTab, setActiveTab]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-150">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex text-slate-900 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-150 overflow-x-hidden w-full relative">
       {/* Sidebar Navigation */}
       <Sidebar mobileOpen={mobileMenuOpen} setMobileOpen={setMobileMenuOpen} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full">
         <Header onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
 
-        <main className="flex-1 p-3 sm:p-5 lg:p-7 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 lg:p-7 overflow-y-auto w-full max-w-full">
           {/* Primary View Routing */}
           {activeTab === 'dashboard' && <DashboardView />}
           {activeTab === 'reports' && <ReportsView />}
@@ -84,6 +93,10 @@ const AppContent: React.FC = () => {
           {activeTab === 'settings' && <SettingsView />}
         </main>
       </div>
+
+      {/* Floating Offline Voice Assistant */}
+      <FloatingVoiceButton />
+      <AssistantModal />
 
       {/* Global Data Input Modals */}
       <AddIncomeModal />
@@ -100,9 +113,12 @@ export default function App() {
     <ThemeProvider>
       <LanguageProvider>
         <FinanceProvider>
-          <AppContent />
+          <AssistantProvider>
+            <AppContent />
+          </AssistantProvider>
         </FinanceProvider>
       </LanguageProvider>
     </ThemeProvider>
   );
 }
+
